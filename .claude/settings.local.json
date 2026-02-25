@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run alembic revision:*)",
+      "Bash(choco:*)",
+      "Bash(scoop:*)",
+      "Bash(uv run alembic upgrade:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(uv run uvicorn:*)",
+      "Bash(npm run dev:*)",
+      "Bash(uv pip install:*)"
+    ]
+  }
+}
