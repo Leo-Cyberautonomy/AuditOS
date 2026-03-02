@@ -15,14 +15,12 @@ import {
   ClipboardList,
   Package,
   ScrollText,
-  Zap,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useT } from "@/lib/i18n";
 import { DEMO_AUDITOR } from "@/lib/demo-data";
-import { StatusChip } from "@/components/shared/StatusChip";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
@@ -33,24 +31,21 @@ interface NavItem {
   badge?: number | string;
 }
 
-/* ─── Hardcoded demo case (will be wired to API later) ──────────────────── */
-
-const DEMO_ACTIVE_CASE = {
-  id: "AOS-2024-001",
-  company: "Muhlviertler Feinkost GmbH",
-  status: "data_preparation",
-};
-
 /* ─── Component ─────────────────────────────────────────────────────────── */
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { t, locale, toggle } = useT();
-  const { activeCaseId, sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar } = useAppStore();
 
-  // Determine if a case is active (from store, or always show demo for now)
-  const showActiveCase = activeCaseId !== null || true; // always show for demo
-  const caseId = activeCaseId ?? DEMO_ACTIVE_CASE.id;
+  // Extract caseId from URL path: /cases/{caseId}/...
+  const caseIdFromUrl = (() => {
+    const match = pathname.match(/^\/cases\/([^/]+)/);
+    return match ? match[1] : null;
+  })();
+
+  const caseId = caseIdFromUrl;
+  const showActiveCase = caseId !== null;
 
   /* ─── Navigation sections ─────────────────────────────────────────────── */
 
@@ -177,12 +172,12 @@ export function AppSidebar() {
     >
       {/* ─── Logo header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
-        <div
-          className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: "#D97706" }}
-        >
-          <Zap size={15} className="text-white" />
-        </div>
+        <img
+          src="/logo.png"
+          alt="AuditOS"
+          className="flex-shrink-0"
+          style={{ height: 30, width: "auto" }}
+        />
         <div className="flex-1">
           <span className="text-white text-sm font-semibold tracking-tight">AuditOS</span>
           <span
@@ -235,12 +230,8 @@ export function AppSidebar() {
             {/* Case identity card */}
             <div className="px-3 py-2 mb-1">
               <p className="text-white text-xs font-semibold leading-snug">
-                {DEMO_ACTIVE_CASE.id}
+                {caseId}
               </p>
-              <p className="text-gray-500 text-[11px] mt-0.5 mb-1.5 truncate">
-                {DEMO_ACTIVE_CASE.company}
-              </p>
-              <StatusChip status={DEMO_ACTIVE_CASE.status} variant="case" />
             </div>
 
             {/* Separator */}

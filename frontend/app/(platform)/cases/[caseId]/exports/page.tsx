@@ -75,7 +75,7 @@ export default function ExportsPage() {
     }
   };
 
-  // Export: EEff-SKV Compliance CSV
+  // Export: Template Compliance CSV
   const exportComplianceCSV = async () => {
     setLoadingCompliance(true);
     setError(null);
@@ -87,7 +87,7 @@ export default function ExportsPage() {
           `"${f.section}","${f.key}","${f.label}","${Array.isArray(f.value) ? JSON.stringify(f.value) : f.value ?? ""}","${f.unit ?? ""}","${f.status}"`
       );
       const csv = [header, ...rows].join("\n");
-      downloadCSV(csv, `AuditOS-EEff-SKV-${caseId}.csv`);
+      downloadCSV(csv, `AuditOS-Template-${caseId}.csv`);
       setDoneCompliance(true);
       setTimeout(() => setDoneCompliance(false), 3000);
     } catch (e) {
@@ -167,11 +167,11 @@ export default function ExportsPage() {
       icon: FileSpreadsheet,
       iconColor: "#3B82F6",
       iconBg: "#DBEAFE",
-      title: locale === "de" ? "EEff-SKV Vorbefüllung CSV" : "EEff-SKV Prefill CSV",
+      title: locale === "de" ? "Vorlage Vorbefüllung CSV" : "Template Prefill CSV",
       description:
         locale === "de"
-          ? "Vorbefüllte EEff-SKV-Felder gemäß BGBl. II Nr. 242/2023 als CSV exportieren. Zur manuellen Eingabe in die E-Control Meldeplattform."
-          : "Export prefilled EEff-SKV fields per BGBl. II Nr. 242/2023 as CSV. For manual entry into the E-Control filing platform.",
+          ? "Vorbefüllte Felder gemäß BGBl. II Nr. 242/2023 als CSV exportieren. Zur manuellen Eingabe in die E-Control Meldeplattform."
+          : "Export prefilled fields per BGBl. II Nr. 242/2023 as CSV. For manual entry into the E-Control filing platform.",
       format: "CSV",
       loading: loadingCompliance,
       done: doneCompliance,

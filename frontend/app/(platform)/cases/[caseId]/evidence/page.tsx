@@ -16,7 +16,6 @@ import { fetchLedger, fetchLedgerSummary, updateLedgerEntry } from "@/lib/api";
 import { StatusChip } from "@/components/shared/StatusChip";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { ConfidenceBar } from "@/components/evidence/ConfidenceBar";
 import type { LedgerEntry, LedgerTotals, EnergyCarrier, EntryStatus } from "@/lib/types";
 
 /* ─── Carrier dot colors ──────────────────────────────────────────────────── */
@@ -89,7 +88,7 @@ function Skeleton({ w = "100%", h = 16 }: { w?: string | number; h?: number }) {
 function SkeletonRow() {
   return (
     <tr>
-      {Array.from({ length: 10 }).map((_, i) => (
+      {Array.from({ length: 9 }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <Skeleton w={`${40 + Math.random() * 50}%`} h={16} />
         </td>
@@ -188,14 +187,6 @@ function DetailDrawer({
     {
       label: t.evidence.status,
       value: <StatusChip status={entry.status} variant="entry" />,
-    },
-    {
-      label: t.evidence.confidence,
-      value: (
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ConfidenceBar value={entry.confidence} showLabel />
-        </span>
-      ),
     },
     {
       label: t.evidence.sourceDoc,
@@ -481,7 +472,6 @@ export default function EvidencePage() {
     { key: "value", label: t.evidence.value, align: "right" as const },
     { key: "unit", label: t.evidence.unit, align: "left" as const },
     { key: "status", label: t.evidence.status, align: "left" as const },
-    { key: "confidence", label: t.evidence.confidence, align: "left" as const },
     { key: "sourceDoc", label: t.evidence.sourceDoc, align: "left" as const },
     { key: "reviewStatus", label: t.evidence.reviewStatus, align: "left" as const },
     { key: "updated", label: t.evidence.lastUpdated, align: "left" as const },
@@ -800,14 +790,6 @@ export default function EvidencePage() {
                             />
                           </td>
 
-                          {/* Confidence */}
-                          <td className="px-4 py-3">
-                            <ConfidenceBar
-                              value={entry.confidence}
-                              showLabel
-                            />
-                          </td>
-
                           {/* Source Document */}
                           <td className="px-4 py-3">
                             {entry.source_doc_id ? (
@@ -900,7 +882,7 @@ export default function EvidencePage() {
                     >
                       {t.shared.kwh}
                     </td>
-                    <td colSpan={5} />
+                    <td colSpan={4} />
                   </tr>
                 )}
               </tbody>

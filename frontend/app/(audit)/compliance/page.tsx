@@ -118,7 +118,7 @@ function SectionNav({ fields, activeSection, onSelect, t }: {
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />
-              {s} — {sFields.length} {t.compliance.fields}
+              {(t.compliance as any).sectionLabels?.[s] ?? s} ({sFields.length})
             </button>
           );
         })}
@@ -215,7 +215,7 @@ export default function CompliancePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "EEff-SKV-Vorbefuellung.csv";
+    a.download = "Template-Vorbefuellung.csv";
     a.click();
     URL.revokeObjectURL(url);
   }, [fields]);
@@ -283,7 +283,7 @@ export default function CompliancePage() {
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <div className="max-w-2xl space-y-3">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-gray-900">{activeSection} {t.compliance.fields}</h2>
+              <h2 className="text-sm font-bold text-gray-900">{(t.compliance as any).sectionLabels?.[activeSection] ?? activeSection}</h2>
               <span className="text-xs text-gray-400">{sectionFields.length} {t.compliance.fields}</span>
             </div>
 

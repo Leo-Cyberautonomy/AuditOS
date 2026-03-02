@@ -97,7 +97,7 @@ function SectionNav({
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />
-              {s} — {sFields.length} {t.compliance.fields}
+              {(t.compliance as any).sectionLabels?.[s] ?? s} ({sFields.length})
             </button>
           );
         })}
@@ -218,7 +218,7 @@ export default function CompliancePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `EEff-SKV-${caseId}.csv`;
+    a.download = `Template-${caseId}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }, [fields, caseId]);
@@ -321,7 +321,7 @@ export default function CompliancePage() {
           <div className="max-w-2xl space-y-3">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold" style={{ color: "#0F1117" }}>
-                {activeSection} {t.compliance.fields}
+                {(t.compliance as any).sectionLabels?.[activeSection] ?? activeSection}
               </h2>
               <span className="text-xs" style={{ color: "#6B7280" }}>
                 {sectionFields.length} {t.compliance.fields}

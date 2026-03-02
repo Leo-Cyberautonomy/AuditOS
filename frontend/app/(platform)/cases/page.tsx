@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { FolderOpen, Plus, ExternalLink } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { FolderOpen, Plus, ExternalLink, X, Loader2 } from "lucide-react";
 import { useT } from "@/lib/i18n";
-import { fetchCases } from "@/lib/api";
+import { fetchCases, createCase } from "@/lib/api";
 import { useAppStore } from "@/lib/stores/app-store";
 import { StatusChip } from "@/components/shared/StatusChip";
 import { SearchInput } from "@/components/shared/SearchInput";
@@ -23,8 +24,15 @@ const ALL_STATUSES: CaseStatus[] = [
   "archived",
 ];
 
+const AUDIT_TYPES = [
+  { value: "grosses_energieaudit", label: "Gro\u00DFes Energieaudit" },
+  { value: "kleines_energieaudit", label: "Kleines Energieaudit" },
+  { value: "internes_audit", label: "Internes Audit" },
+];
+
 export default function CasesPage() {
   const { t } = useT();
+  const router = useRouter();
   const setActiveCaseId = useAppStore((s: { setActiveCaseId: (id: string | null) => void }) => s.setActiveCaseId);
 
   const [cases, setCases] = useState<Case[]>([]);
@@ -32,6 +40,16 @@ export default function CasesPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Create-case modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    companyName: "",
+    companyAddress: "",
+    auditType: AUDIT_TYPES[0].value,
+  });
 
   const loadCases = useCallback(async () => {
     setLoading(true);
@@ -48,6 +66,41 @@ export default function CasesPage() {
       setLoading(false);
     }
   }, [statusFilter, searchQuery]);
+
+  const handleCreateCase = async () => {
+    if (!formData.companyName.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const auditTypeLabel = AUDIT_TYPES.find((a) => a.value === formData.auditType)?.label ?? formData.auditType;
+      const newCase = await createCase({
+        company: {
+          name: formData.companyName.trim(),
+          address: formData.companyAddress.trim(),
+          nace_code: "",
+          industry: "",
+          employees: 0,
+          building_area_m2: 0,
+          annual_turnover_eur: null,
+          audit_year: new Date().getFullYear(),
+        },
+        auditor: {
+          name: "",
+          e_control_id: "",
+          company: "",
+        },
+        notes: `Audit-Typ: ${auditTypeLabel}`,
+      });
+      setActiveCaseId(newCase.id);
+      setShowCreateModal(false);
+      setFormData({ companyName: "", companyAddress: "", auditType: AUDIT_TYPES[0].value });
+      router.push(`/cases/${newCase.id}/overview`);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Fehler beim Erstellen des Falls");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   useEffect(() => {
     loadCases();
@@ -92,6 +145,7 @@ export default function CasesPage() {
           </h1>
         </div>
         <button
+          onClick={() => setShowCreateModal(true)}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#D97706", color: "#FFFFFF" }}
         >
@@ -304,6 +358,200 @@ export default function CasesPage() {
           </div>
         )}
       </motion.div>
+
+      {/* Create Case Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)" }}
+            onClick={() => { if (!creating) setShowCreateModal(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25 }}
+              className="rounded-2xl w-full max-w-lg mx-4 overflow-hidden"
+              style={{
+                backgroundColor: "#1E1F2B",
+                boxShadow: "0 25px 60px rgba(0, 0, 0, 0.5)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div
+                className="flex items-center justify-between px-6 py-4"
+                style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}
+              >
+                <h2 className="text-lg font-semibold" style={{ color: "#F9FAFB" }}>
+                  {t.cases.newCase}
+                </h2>
+                <button
+                  onClick={() => { if (!creating) setShowCreateModal(false); }}
+                  className="rounded-lg p-1.5 transition-colors"
+                  style={{ color: "#9CA3AF" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleCreateCase(); }}
+                className="px-6 py-5 space-y-5"
+              >
+                {/* Error */}
+                {createError && (
+                  <div
+                    className="rounded-lg px-4 py-3 text-sm"
+                    style={{
+                      backgroundColor: "rgba(239, 68, 68, 0.15)",
+                      color: "#FCA5A5",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                    }}
+                  >
+                    {createError}
+                  </div>
+                )}
+
+                {/* Company Name */}
+                <div className="space-y-1.5">
+                  <label
+                    className="block text-sm font-medium"
+                    style={{ color: "#D1D5DB" }}
+                  >
+                    Unternehmen <span style={{ color: "#D97706" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={formData.companyName}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="z.B. Mühlviertler Feinkost GmbH"
+                    className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-all"
+                    style={{
+                      backgroundColor: "#2A2B3A",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      color: "#F9FAFB",
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#D97706"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(217, 119, 6, 0.15)"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)"; e.currentTarget.style.boxShadow = "none"; }}
+                  />
+                </div>
+
+                {/* Company Address */}
+                <div className="space-y-1.5">
+                  <label
+                    className="block text-sm font-medium"
+                    style={{ color: "#D1D5DB" }}
+                  >
+                    Adresse
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.companyAddress}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, companyAddress: e.target.value }))}
+                    placeholder="z.B. Industriestraße 12, 4240 Freistadt"
+                    className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-all"
+                    style={{
+                      backgroundColor: "#2A2B3A",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      color: "#F9FAFB",
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#D97706"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(217, 119, 6, 0.15)"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)"; e.currentTarget.style.boxShadow = "none"; }}
+                  />
+                </div>
+
+                {/* Audit Type */}
+                <div className="space-y-1.5">
+                  <label
+                    className="block text-sm font-medium"
+                    style={{ color: "#D1D5DB" }}
+                  >
+                    Audit-Typ
+                  </label>
+                  <select
+                    value={formData.auditType}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, auditType: e.target.value }))}
+                    className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-all appearance-none cursor-pointer"
+                    style={{
+                      backgroundColor: "#2A2B3A",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      color: "#F9FAFB",
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239CA3AF' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                      paddingRight: "36px",
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#D97706"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(217, 119, 6, 0.15)"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)"; e.currentTarget.style.boxShadow = "none"; }}
+                  >
+                    {AUDIT_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Actions */}
+                <div
+                  className="flex items-center justify-end gap-3 pt-2"
+                >
+                  <button
+                    type="button"
+                    onClick={() => { if (!creating) setShowCreateModal(false); }}
+                    disabled={creating}
+                    className="px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    style={{
+                      color: "#D1D5DB",
+                      backgroundColor: "transparent",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                  >
+                    {t.shared.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creating || !formData.companyName.trim()}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-opacity"
+                    style={{
+                      backgroundColor: creating || !formData.companyName.trim() ? "#92400E" : "#D97706",
+                      color: "#FFFFFF",
+                      opacity: creating || !formData.companyName.trim() ? 0.6 : 1,
+                      cursor: creating || !formData.companyName.trim() ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {creating ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Erstelle...
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} />
+                        Fall anlegen
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Pulse animation for skeletons */}
       <style jsx global>{`

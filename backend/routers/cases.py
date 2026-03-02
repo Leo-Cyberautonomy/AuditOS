@@ -91,6 +91,21 @@ async def update_case(case_id: str, data: CaseUpdate):
     return case
 
 
+@router.delete("/{case_id}")
+async def delete_case(case_id: str):
+    case = store.cases.pop(case_id, None)
+    if not case:
+        raise HTTPException(404, f"Case {case_id} not found")
+    # Clean up related data
+    store.documents = {k: v for k, v in store.documents.items() if v.case_id != case_id}
+    store.document_blobs = {k: v for k, v in store.document_blobs.items() if k in store.documents}
+    store.ledger_entries = {k: v for k, v in store.ledger_entries.items() if v.case_id != case_id}
+    store.review_items = {k: v for k, v in store.review_items.items() if v.case_id != case_id}
+    store.measures = {k: v for k, v in store.measures.items() if v.case_id != case_id}
+    log_event("case_deleted", case_id=case_id, detail=f"Fall {case_id} gelöscht")
+    return {"ok": True}
+
+
 @router.post("/{case_id}/transition", response_model=Case)
 async def transition_case(case_id: str, body: dict):
     case = store.cases.get(case_id)

@@ -83,7 +83,7 @@ export default function DashboardPage() {
             className="h-4 rounded"
             style={{
               backgroundColor: "#E5E7EB",
-              width: i === 4 ? "100%" : `${60 + Math.random() * 40}%`,
+              width: i === 4 ? "100%" : `${[72, 85, 66, 78, 90, 68][i]}%`,
               animation: "pulse 1.5s ease-in-out infinite",
             }}
           />

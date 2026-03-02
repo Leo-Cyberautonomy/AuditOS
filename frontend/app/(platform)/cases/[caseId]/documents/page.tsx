@@ -15,6 +15,8 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
+  ClipboardCheck,
+  Check,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import {
@@ -150,6 +152,52 @@ export default function DocumentsPage() {
     }
   };
 
+  // Document checklist sections — which categories belong to each audit section
+  const checklistSections = [
+    {
+      label: "Energierechnungen",
+      sublabel: "Strom / Gas / Wärme",
+      categories: ["electricity_bill", "gas_bill", "heat_bill"],
+    },
+    {
+      label: "Intervalldaten",
+      sublabel: "Lastprofile / Zeitreihen",
+      categories: ["excel_data"],
+    },
+    {
+      label: "Produktion",
+      sublabel: "Messberichte",
+      categories: ["measurement_protocol"],
+    },
+    {
+      label: "Anlagen",
+      sublabel: "Anlagenliste / Grundriss",
+      categories: ["equipment_list", "floor_plan"],
+    },
+    {
+      label: "Abwärme",
+      sublabel: "Abwärmequellen",
+      categories: [] as string[],  // new section, no matching categories yet
+    },
+    {
+      label: "Tarife",
+      sublabel: "Energietarife",
+      categories: [] as string[],  // new section, no matching categories yet
+    },
+  ];
+
+  // For each checklist section, check if at least one document matches any of its categories
+  const checklistStatus = checklistSections.map((section) => {
+    if (section.categories.length === 0) {
+      // No known categories yet — always incomplete
+      return { ...section, complete: false, count: 0 };
+    }
+    const matching = documents.filter(
+      (doc) => doc.category && section.categories.includes(doc.category)
+    );
+    return { ...section, complete: matching.length > 0, count: matching.length };
+  });
+
   const sortedDocs = [...documents].sort(
     (a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
   );
@@ -214,6 +262,89 @@ export default function DocumentsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Document Checklist */}
+      {!loading && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.4 }}
+          className="bg-white rounded-xl p-5 mb-6"
+          style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <ClipboardCheck size={16} style={{ color: "#D97706" }} />
+            <h2 className="text-sm font-semibold" style={{ color: "#0F1117" }}>
+              Dokumenten-Checkliste
+            </h2>
+            <span
+              className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full"
+              style={{
+                backgroundColor: checklistStatus.filter((s) => s.complete).length === checklistSections.length
+                  ? "#D1FAE5"
+                  : "#FEF3C7",
+                color: checklistStatus.filter((s) => s.complete).length === checklistSections.length
+                  ? "#065F46"
+                  : "#92400E",
+              }}
+            >
+              {checklistStatus.filter((s) => s.complete).length} / {checklistSections.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {checklistStatus.map((section) => (
+              <div
+                key={section.label}
+                className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+                style={{
+                  backgroundColor: section.complete ? "#F0FDF4" : "#F9FAFB",
+                  border: `1px solid ${section.complete ? "#BBF7D0" : "#E5E7EB"}`,
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div
+                  className="flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    marginTop: 1,
+                    backgroundColor: section.complete ? "#22C55E" : "#E5E7EB",
+                    transition: "background-color 0.2s ease",
+                  }}
+                >
+                  <Check
+                    size={13}
+                    style={{ color: section.complete ? "#FFFFFF" : "#9CA3AF" }}
+                    strokeWidth={2.5}
+                  />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p
+                    className="text-xs font-semibold truncate"
+                    style={{
+                      color: section.complete ? "#065F46" : "#374151",
+                      lineHeight: "1.4",
+                    }}
+                  >
+                    {section.label}
+                  </p>
+                  <p
+                    className="text-xs truncate"
+                    style={{
+                      color: section.complete ? "#6B7280" : "#9CA3AF",
+                      lineHeight: "1.3",
+                    }}
+                  >
+                    {section.count > 0
+                      ? `${section.count} Dok.`
+                      : section.sublabel}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Error State */}
       {error && (

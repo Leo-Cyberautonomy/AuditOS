@@ -1,34 +1,13 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Ruler, Calculator, DollarSign, AlertTriangle } from "lucide-react";
+import { X, Ruler, Calculator, DollarSign } from "lucide-react";
 import { Measure } from "@/lib/demo-data";
 import { useT } from "@/lib/i18n";
 
 interface EvidencePanelProps {
   measure: Measure | null;
   onClose: () => void;
-}
-
-function ConfidenceBar({ value, label, confidence }: { value: number; label: string; confidence: string }) {
-  const color = value >= 85 ? "#22C55E" : value >= 60 ? "#F59E0B" : "#EF4444";
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-500">{label}</span>
-        <span className="font-bold tabular-nums" style={{ color }}>{value}% — {confidence}</span>
-      </div>
-      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-        />
-      </div>
-    </div>
-  );
 }
 
 const TREE_SECTION_KEYS = [
@@ -126,28 +105,7 @@ export function EvidencePanel({ measure, onClose }: EvidencePanelProps) {
               );
             })}
 
-            {/* Confidence */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="pt-2"
-            >
-              <ConfidenceBar
-                value={measure.evidence.confidence}
-                label={t.evidence.confidence}
-                confidence={t.evidence.confidenceLevel(measure.evidence.confidence)}
-              />
-              {measure.evidence.confidence_note && (
-                <div
-                  className="mt-2 flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
-                  style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-                >
-                  <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
-                  <span>{measure.evidence.confidence_note}</span>
-                </div>
-              )}
-            </motion.div>
+            {/* Confidence section removed per design — data kept in evidence structure */}
           </div>
         </motion.div>
       )}

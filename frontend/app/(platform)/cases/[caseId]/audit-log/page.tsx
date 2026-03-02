@@ -33,6 +33,18 @@ function relativeTime(timestamp: string): string {
   return `vor ${days} Tag${days > 1 ? "en" : ""}`;
 }
 
+// Absolute time formatting: "DD.MM.YYYY HH:mm"
+function formatAbsoluteTime(timestamp: string): string {
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
+}
+
 // Action type metadata
 const actionMeta: Record<
   string,
@@ -337,6 +349,8 @@ export default function AuditLogPage() {
                   </span>
                   <p className="text-[10px] tabular-nums" style={{ color: "#9CA3AF" }}>
                     {relativeTime(event.timestamp)}
+                    <span style={{ color: "#C0C4CC" }}>{" "}·{" "}</span>
+                    <span style={{ color: "#C0C4CC", fontSize: "9px" }}>{formatAbsoluteTime(event.timestamp)}</span>
                   </p>
                 </div>
               </motion.div>

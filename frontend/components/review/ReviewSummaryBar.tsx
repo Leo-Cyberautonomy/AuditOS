@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, Loader2, CheckSquare } from "lucide-react";
+import { CheckCircle, Loader2, CheckSquare, Upload } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import type { ReviewStats } from "@/lib/types";
 
@@ -23,6 +24,21 @@ export function ReviewSummaryBar({
   batchLoading,
 }: ReviewSummaryBarProps) {
   const { t } = useT();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importLabel, setImportLabel] = useState("Importieren");
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportLabel("\u2713 Importiert");
+    setTimeout(() => setImportLabel("Importieren"), 2000);
+    // Reset so the same file can be re-selected
+    e.target.value = "";
+  };
 
   const progressPct =
     stats.total > 0
@@ -92,8 +108,28 @@ export function ReviewSummaryBar({
           </div>
         </div>
 
-        {/* Right: Select all + batch approve */}
+        {/* Right: Import + Select all + batch approve */}
         <div className="flex items-center gap-3">
+          {/* Import */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
+            style={{
+              backgroundColor: importLabel === "Importieren" ? "#1F2937" : "#065F46",
+              color: "#FFFFFF",
+            }}
+          >
+            <Upload size={14} />
+            {importLabel}
+          </button>
+
           {/* Master checkbox */}
           <button
             onClick={onToggleSelectAll}

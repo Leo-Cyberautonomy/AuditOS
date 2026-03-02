@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Leaf, CheckCircle, Download, TrendingDown } from "lucide-react";
+import { Zap, Leaf, CheckCircle, Download, TrendingDown, FileText, Check } from "lucide-react";
 import { toPng } from "html-to-image";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
@@ -92,6 +92,8 @@ export default function AnalyticsPage() {
   const [selectedCharts, setSelectedCharts] = useState<Set<ChartId>>(new Set(CHART_IDS));
   const [selectedMonth, setSelectedMonth] = useState<EnergyRow | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportingReport, setExportingReport] = useState(false);
+  const [exportedToReport, setExportedToReport] = useState(false);
 
   const [energyData, setEnergyData] = useState<EnergyRow[]>([]);
   const [totals, setTotals] = useState<LedgerTotals | null>(null);
@@ -155,7 +157,15 @@ export default function AnalyticsPage() {
         const el = chartRefs.current[id];
         if (el) {
           try {
-            const dataUrl = await toPng(el, { pixelRatio: 2, backgroundColor: "#ffffff" });
+            const dataUrl = await toPng(el, {
+              pixelRatio: 2,
+              backgroundColor: "#ffffff",
+              skipAutoScale: true,
+              filter: (node: HTMLElement) => {
+                if (node.tagName === "LINK" && (node as HTMLLinkElement).rel === "stylesheet") return false;
+                return true;
+              },
+            });
             const a = document.createElement("a");
             a.href = dataUrl;
             a.download = `auditOS-${id}-${caseId}.png`;
@@ -169,6 +179,51 @@ export default function AnalyticsPage() {
     }
     setExporting(false);
   }, [selectedCharts, caseId]);
+
+  const handleExportToReport = useCallback(async () => {
+    setExportingReport(true);
+    const chartImages: { id: string; dataUrl: string; title: string }[] = [];
+
+    const chartTitles: Record<ChartId, string> = {
+      energy: t.chart.energyTitle,
+      donut: t.chart.donutTitle,
+      co2: t.chart.co2Title,
+      benchmark: t.chart.benchmarkTitle,
+      roi: t.chart.roiTitle,
+      savings: t.chart.savingsTitle,
+    };
+
+    for (const id of CHART_IDS) {
+      if (selectedCharts.has(id)) {
+        const el = chartRefs.current[id];
+        if (el) {
+          try {
+            const dataUrl = await toPng(el, {
+              pixelRatio: 2,
+              backgroundColor: "#ffffff",
+              skipAutoScale: true,
+              filter: (node: HTMLElement) => {
+                if (node.tagName === "LINK" && (node as HTMLLinkElement).rel === "stylesheet") return false;
+                return true;
+              },
+            });
+            chartImages.push({ id, dataUrl, title: chartTitles[id] });
+          } catch (e) {
+            console.error(`Report export failed for ${id}:`, e);
+          }
+        }
+      }
+    }
+
+    // Store in sessionStorage for Report page to read
+    sessionStorage.setItem(`auditOS-report-charts-${caseId}`, JSON.stringify(chartImages));
+    setExportingReport(false);
+
+    // Show success feedback — navigate to report would be too aggressive,
+    // user might want to stay on analytics
+    setExportedToReport(true);
+    setTimeout(() => setExportedToReport(false), 3000);
+  }, [selectedCharts, caseId, t]);
 
   // Derive filter labels
   const { year, h1Label, h2Label } = deriveFilterMeta(energyData);
@@ -287,7 +342,7 @@ export default function AnalyticsPage() {
                 </button>
               ))}
             </div>
-            {/* Export button */}
+            {/* Export PNG button */}
             <motion.button
               onClick={handleExport}
               disabled={selectedCount === 0 || exporting}
@@ -301,6 +356,21 @@ export default function AnalyticsPage() {
             >
               <Download size={14} />
               {exporting ? "..." : t.dashboard.exportBtnCount(selectedCount)}
+            </motion.button>
+            {/* Export to Report button */}
+            <motion.button
+              onClick={handleExportToReport}
+              disabled={selectedCount === 0 || exportingReport || exportedToReport}
+              animate={{
+                backgroundColor: exportedToReport ? "#16A34A" : selectedCount > 0 ? "#1F2937" : "#E5E7EB",
+                color: exportedToReport || selectedCount > 0 ? "white" : "#9CA3AF",
+              }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all"
+              style={{ cursor: selectedCount > 0 && !exportingReport && !exportedToReport ? "pointer" : "not-allowed" }}
+            >
+              {exportedToReport ? <Check size={14} /> : <FileText size={14} />}
+              {exportingReport ? "..." : exportedToReport ? t.dashboard.exportedToReport : t.dashboard.exportToReport}
             </motion.button>
           </div>
         </div>

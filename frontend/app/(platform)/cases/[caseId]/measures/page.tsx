@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, TrendingDown, DollarSign, Clock, ChevronRight, X } from "lucide-react";
+import { Zap, TrendingDown, DollarSign, Clock, ChevronRight, X, Plus, LayoutList, Table2, LayoutGrid } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { fetchMeasures, fetchMeasuresSummary } from "@/lib/api";
 import type { Measure, MeasuresSummary } from "@/lib/types";
@@ -52,6 +52,13 @@ export default function MeasuresPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMeasure, setSelectedMeasure] = useState<Measure | null>(null);
   const [evidencePanelOpen, setEvidencePanelOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "table">("grid");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newSavings, setNewSavings] = useState("");
+  const [newInvestment, setNewInvestment] = useState("");
+  const [newPayback, setNewPayback] = useState("");
+  const [newPriority, setNewPriority] = useState<"sehr hoch" | "hoch" | "mittel" | "niedrig">("mittel");
 
   useEffect(() => {
     if (!caseId) return;
@@ -79,6 +86,69 @@ export default function MeasuresPage() {
       cancelled = true;
     };
   }, [caseId]);
+
+  const handleAddMeasure = () => {
+    if (!newName.trim()) return;
+    const nextId = `M${(measures.length + 1).toString().padStart(3, "0")}`;
+    const newMeasure: Measure = {
+      id: crypto.randomUUID(),
+      case_id: caseId,
+      measure_id: nextId,
+      title: newName.trim(),
+      description: "",
+      annual_saving_kwh: 0,
+      annual_saving_eur: parseFloat(newSavings) || 0,
+      investment_eur: parseFloat(newInvestment) || 0,
+      payback_years: parseFloat(newPayback) || 0,
+      priority: newPriority,
+      evidence: {
+        measurement: "",
+        method: "",
+        price_basis: "",
+        confidence: 0,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setMeasures((prev) => [newMeasure, ...prev]);
+    // Update summary locally
+    setSummary((prev) => {
+      if (!prev) {
+        return {
+          count: 1,
+          total_savings_eur: newMeasure.annual_saving_eur,
+          total_investment_eur: newMeasure.investment_eur,
+          avg_payback: newMeasure.payback_years,
+        };
+      }
+      const newCount = prev.count + 1;
+      const newTotalSavings = prev.total_savings_eur + newMeasure.annual_saving_eur;
+      const newTotalInvestment = prev.total_investment_eur + newMeasure.investment_eur;
+      const newAvgPayback = (prev.avg_payback * prev.count + newMeasure.payback_years) / newCount;
+      return {
+        count: newCount,
+        total_savings_eur: newTotalSavings,
+        total_investment_eur: newTotalInvestment,
+        avg_payback: newAvgPayback,
+      };
+    });
+    // Reset form
+    setNewName("");
+    setNewSavings("");
+    setNewInvestment("");
+    setNewPayback("");
+    setNewPriority("mittel");
+    setShowAddForm(false);
+  };
+
+  const handleCancelAdd = () => {
+    setNewName("");
+    setNewSavings("");
+    setNewInvestment("");
+    setNewPayback("");
+    setNewPriority("mittel");
+    setShowAddForm(false);
+  };
 
   const handleSelectMeasure = (m: Measure) => {
     if (selectedMeasure?.measure_id === m.measure_id && evidencePanelOpen) {
@@ -144,12 +214,48 @@ export default function MeasuresPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex items-center gap-3 mb-6"
+          className="flex items-center justify-between mb-6"
         >
-          <Zap size={22} style={{ color: "#D97706" }} />
-          <h1 className="text-xl font-bold" style={{ color: "#0F1117" }}>
-            {t.measures.title}
-          </h1>
+          <div className="flex items-center gap-3">
+            <Zap size={22} style={{ color: "#D97706" }} />
+            <h1 className="text-xl font-bold" style={{ color: "#0F1117" }}>
+              {t.measures.title}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg overflow-hidden" style={{ border: "1px solid #E5E7EB" }}>
+              {([
+                { mode: "list" as const, icon: LayoutList, label: "List" },
+                { mode: "table" as const, icon: Table2, label: "Table" },
+                { mode: "grid" as const, icon: LayoutGrid, label: "Grid" },
+              ]).map(({ mode, icon: Icon, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  title={label}
+                  className="flex items-center justify-center w-8 h-8 transition-colors duration-150"
+                  style={{
+                    backgroundColor: viewMode === mode ? "#D97706" : "white",
+                    color: viewMode === mode ? "white" : "#6B7280",
+                  }}
+                >
+                  <Icon size={15} />
+                </button>
+              ))}
+            </div>
+
+            {/* Add Measure button */}
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 hover:opacity-90"
+              style={{ backgroundColor: "#D97706", color: "white" }}
+            >
+              <Plus size={14} />
+              {locale === "de" ? "+ Maßnahme" : "+ Measure"}
+            </button>
+          </div>
         </motion.div>
 
         {/* Summary bar */}
@@ -216,20 +322,258 @@ export default function MeasuresPage() {
           </motion.div>
         )}
 
-        {/* Measures Grid */}
+        {/* Add Measure Inline Form */}
+        <AnimatePresence>
+          {showAddForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mb-6 overflow-hidden"
+            >
+              <div
+                className="bg-white rounded-xl p-5"
+                style={{
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                  borderLeft: "4px solid #D97706",
+                }}
+              >
+                <h3 className="text-sm font-bold mb-4" style={{ color: "#0F1117" }}>
+                  {locale === "de" ? "Neue Maßnahme hinzufügen" : "Add New Measure"}
+                </h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  {/* Name */}
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6B7280" }}>
+                      {locale === "de" ? "Bezeichnung" : "Name"} *
+                    </label>
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder={locale === "de" ? "z.B. LED-Beleuchtung Umrüstung" : "e.g. LED Lighting Retrofit"}
+                      className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      style={{
+                        border: "1px solid #D1D5DB",
+                        backgroundColor: "#FAFAFA",
+                        color: "#0F1117",
+                      }}
+                    />
+                  </div>
+                  {/* Annual Savings EUR */}
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6B7280" }}>
+                      {locale === "de" ? "Einsparung/Jahr (EUR)" : "Annual Savings (EUR)"}
+                    </label>
+                    <input
+                      type="number"
+                      value={newSavings}
+                      onChange={(e) => setNewSavings(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      style={{
+                        border: "1px solid #D1D5DB",
+                        backgroundColor: "#FAFAFA",
+                        color: "#0F1117",
+                      }}
+                    />
+                  </div>
+                  {/* Investment EUR */}
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6B7280" }}>
+                      {locale === "de" ? "Investition (EUR)" : "Investment (EUR)"}
+                    </label>
+                    <input
+                      type="number"
+                      value={newInvestment}
+                      onChange={(e) => setNewInvestment(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      style={{
+                        border: "1px solid #D1D5DB",
+                        backgroundColor: "#FAFAFA",
+                        color: "#0F1117",
+                      }}
+                    />
+                  </div>
+                  {/* Payback Years */}
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6B7280" }}>
+                      {locale === "de" ? "Amortisation (Jahre)" : "Payback (Years)"}
+                    </label>
+                    <input
+                      type="number"
+                      value={newPayback}
+                      onChange={(e) => setNewPayback(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      step="0.1"
+                      className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      style={{
+                        border: "1px solid #D1D5DB",
+                        backgroundColor: "#FAFAFA",
+                        color: "#0F1117",
+                      }}
+                    />
+                  </div>
+                  {/* Priority */}
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6B7280" }}>
+                      {locale === "de" ? "Priorität" : "Priority"}
+                    </label>
+                    <select
+                      value={newPriority}
+                      onChange={(e) => setNewPriority(e.target.value as typeof newPriority)}
+                      className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      style={{
+                        border: "1px solid #D1D5DB",
+                        backgroundColor: "#FAFAFA",
+                        color: "#0F1117",
+                      }}
+                    >
+                      <option value="sehr hoch">sehr hoch</option>
+                      <option value="hoch">hoch</option>
+                      <option value="mittel">mittel</option>
+                      <option value="niedrig">niedrig</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleAddMeasure}
+                    disabled={!newName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-150"
+                    style={{
+                      backgroundColor: newName.trim() ? "#D97706" : "#E5E7EB",
+                      color: newName.trim() ? "white" : "#9CA3AF",
+                      cursor: newName.trim() ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    <Plus size={13} />
+                    {locale === "de" ? "Hinzufügen" : "Add"}
+                  </button>
+                  <button
+                    onClick={handleCancelAdd}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-150 hover:opacity-80"
+                    style={{
+                      backgroundColor: "#F3F4F6",
+                      color: "#6B7280",
+                    }}
+                  >
+                    <X size={13} />
+                    {locale === "de" ? "Abbrechen" : "Cancel"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Measures Content */}
         {measures.length === 0 ? (
           <EmptyState
             icon={Zap}
             title={locale === "de" ? "Noch keine Maßnahmen identifiziert" : "No measures identified yet"}
             description={locale === "de" ? "Bericht generieren, um Maßnahmen zu extrahieren" : "Generate a report to extract measures"}
           />
+        ) : viewMode === "table" ? (
+          /* ───── Table View ───── */
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-xl overflow-hidden"
+            style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+          >
+            <table className="w-full text-xs">
+              <thead>
+                <tr style={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                  <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide" style={{ color: "#6B7280" }}>ID</th>
+                  <th className="text-left px-4 py-3 font-semibold uppercase tracking-wide" style={{ color: "#6B7280" }}>
+                    {locale === "de" ? "Maßnahme" : "Measure"}
+                  </th>
+                  <th className="text-right px-4 py-3 font-semibold uppercase tracking-wide" style={{ color: "#6B7280" }}>
+                    {locale === "de" ? "Einsparung/J." : "Savings/yr"}
+                  </th>
+                  <th className="text-right px-4 py-3 font-semibold uppercase tracking-wide" style={{ color: "#6B7280" }}>
+                    {locale === "de" ? "Investition" : "Investment"}
+                  </th>
+                  <th className="text-right px-4 py-3 font-semibold uppercase tracking-wide" style={{ color: "#6B7280" }}>
+                    {t.finding.payback}
+                  </th>
+                  <th className="text-center px-4 py-3 font-semibold uppercase tracking-wide" style={{ color: "#6B7280" }}>
+                    {locale === "de" ? "Priorität" : "Priority"}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {measures.map((m) => {
+                  const pColor = priorityColors[m.priority] ?? priorityColors.niedrig;
+                  const isSelected = selectedMeasure?.measure_id === m.measure_id && evidencePanelOpen;
+                  return (
+                    <tr
+                      key={m.measure_id}
+                      onClick={() => handleSelectMeasure(m)}
+                      className="cursor-pointer transition-colors duration-100"
+                      style={{
+                        borderBottom: "1px solid #F3F4F6",
+                        backgroundColor: isSelected ? "#FFFBEB" : "white",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = "#F9FAFB";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = "white";
+                      }}
+                    >
+                      <td className="px-4 py-3">
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: isSelected ? "#D97706" : "#F3F4F6",
+                            color: isSelected ? "white" : "#6B7280",
+                          }}
+                        >
+                          {m.measure_id}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 max-w-xs">
+                        <p className="text-sm font-semibold leading-snug truncate" style={{ color: "#0F1117" }}>
+                          {m.title}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold" style={{ color: "#22C55E" }}>
+                        {"\u20AC"}{m.annual_saving_eur.toLocaleString("de-AT")}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums" style={{ color: "#6B7280" }}>
+                        {"\u20AC"}{m.investment_eur.toLocaleString("de-AT")}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums" style={{ color: "#6B7280" }}>
+                        {t.finding.paybackYears(m.payback_years)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: pColor.bg, color: pColor.text }}
+                        >
+                          {priorityLabel(m.priority)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          /* ───── Grid / List View (cards) ───── */
+          <div className={viewMode === "grid" ? "grid grid-cols-2 gap-4" : "flex flex-col gap-3"}>
             {measures.map((m, idx) => {
               const pColor = priorityColors[m.priority] ?? priorityColors.niedrig;
               const isSelected = selectedMeasure?.measure_id === m.measure_id && evidencePanelOpen;
-              const confidenceColor =
-                m.evidence.confidence >= 80 ? "#22C55E" : m.evidence.confidence >= 50 ? "#F59E0B" : "#EF4444";
 
               return (
                 <motion.div
@@ -262,15 +606,6 @@ export default function MeasuresPage() {
                       >
                         {priorityLabel(m.priority)}
                       </span>
-                      <div className="ml-auto flex items-center gap-1">
-                        <div
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: confidenceColor }}
-                        />
-                        <span className="text-[10px] font-semibold tabular-nums" style={{ color: confidenceColor }}>
-                          {m.evidence.confidence}%
-                        </span>
-                      </div>
                     </div>
 
                     {/* Title */}

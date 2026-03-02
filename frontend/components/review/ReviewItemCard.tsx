@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Square,
   CheckSquare,
+  UserCheck,
 } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { StatusChip } from "@/components/shared/StatusChip";
@@ -50,7 +51,7 @@ export function ReviewItemCard({
   const [commentOpen, setCommentOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [activeAction, setActiveAction] = useState<
-    "approve" | "reject" | "defer" | null
+    "approve" | "reject" | "defer" | "expert" | null
   >(null);
 
   const catColor = categoryColors[item.category];
@@ -62,6 +63,15 @@ export function ReviewItemCard({
     setActiveAction(action);
     try {
       await onAction(item.id, action, comment || undefined);
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleExpertReview = async () => {
+    setActiveAction("expert");
+    try {
+      await onAction(item.id, "defer", "Zur Expertenprüfung markiert");
     } finally {
       setActiveAction(null);
     }
@@ -253,6 +263,26 @@ export function ReviewItemCard({
                   <Clock size={13} />
                 )}
                 {t.review.defer}
+              </button>
+
+              {/* Review by Expert */}
+              <button
+                onClick={handleExpertReview}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                style={{
+                  backgroundColor: "#E0E7FF",
+                  color: "#3730A3",
+                  opacity: actionLoading ? 0.6 : 1,
+                  cursor: actionLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {activeAction === "expert" ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <UserCheck size={13} />
+                )}
+                Expertenprüfung
               </button>
 
               {/* Comment toggle */}

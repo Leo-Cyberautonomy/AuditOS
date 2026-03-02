@@ -4,7 +4,7 @@
  * Workflow:
  *   Step 1  Upload / Data preparation   → step1Done
  *   Step 2  Report generated            → step2Done
- *   Step 3  EEff-SKV compliance done    → step3Done
+ *   Step 3  Template compliance done     → step3Done
  *
  * Data payloads (separate keys):
  *   auditOS_energy    → { energyData: EnergyRow[], totals: Totals }
