@@ -11,6 +11,8 @@ import {
   BookOpen,
   Loader2,
   BarChart3,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 import { FindingCard } from "@/components/report/FindingCard";
 import { EvidencePanel } from "@/components/report/EvidencePanel";
@@ -27,16 +29,16 @@ interface SectionState {
   scopeDrift: boolean;
 }
 
-/* ─── Scope Drift demo keywords ─── */
+/* ─── Scope Drift keywords (broad coverage, DE + EN) ─── */
 const SCOPE_DRIFT_KEYWORDS = [
-  "zusätzlich",
-  "optional",
-  "furthermore",
-  "additionally",
-  "außerplanmäßig",
-  "beyond scope",
-  "nicht im Auftrag",
-  "Eigeninitiative",
+  "zusätzlich", "optional", "außerplanmäßig", "nicht im auftrag",
+  "eigeninitiative", "ergänzend", "erweitert", "über den auftrag hinaus",
+  "nicht vereinbart", "nicht beauftragt", "freiwillig", "auf eigene",
+  "darüber hinaus", "abweichend vom", "nicht teil des", "sonderuntersuchung",
+  "zusatzleistung", "empfehlung des auditors", "exkurs",
+  "furthermore", "additionally", "beyond scope", "out of scope",
+  "not in scope", "supplementary", "additional scope", "optional recommendation",
+  "voluntary", "not commissioned", "digression", "supplemental",
 ];
 
 /** Check if section body contains scope drift indicators */
@@ -45,9 +47,33 @@ function detectScopeDrift(body: string): boolean {
   return SCOPE_DRIFT_KEYWORDS.some(kw => text.includes(kw.toLowerCase()));
 }
 
-/* ─── Evidence reference pattern: [REF:xxx] or (Quelle: xxx) or (Source: xxx) ─── */
-const EVIDENCE_REF_PATTERN =
-  /(\[REF:[^\]]+\]|\(Quelle\s*:[^)]+\)|\(Source\s*:[^)]+\)|\(Foto\s*#\d+\)|\(Messung[^)]*\)|\(DIN[^)]*\)|\(EN[^)]*\)|\(E-Control[^)]*\))/;
+/* ─── Evidence reference pattern (broad: catches most parenthesized refs) ─── */
+// Marker words that signal a parenthesized reference (case-insensitive)
+const _EV_MARKERS = [
+  "Quelle", "Source", "Ref", "Referenz",
+  "vgl\\.", "siehe", "s\\.", "gem\\.", "lt\\.", "laut", "gemäß", "nach",
+  "cf\\.", "see", "per", "acc\\.",
+  "Messung", "Measurement", "Foto", "Photo",
+  "Klasse A", "Klasse B", "Class A", "Class B",
+  "Zähler", "Meter", "Sensor",
+  "DIN", "EN\\s", "ÖNORM", "ISO", "EEffG", "BGBl", "E-Control", "VDI", "ASHRAE",
+  "Anlage", "Anhang", "Appendix", "Annex",
+  "Tabelle", "Table", "Tab\\.", "Abb\\.", "Abbildung", "Figure", "Fig\\.",
+  "Abschnitt", "Section", "Kapitel", "Chapter",
+  "Rechnung", "Invoice", "Stromrechnung", "Gasrechnung",
+  "Energieausweis", "Lastprofil", "Energiebericht",
+].join("|");
+
+const EVIDENCE_REF_PATTERN = new RegExp(
+  "(" +
+    "\\[REF:[^\\]]+\\]" +                           // [REF:xxx]
+    "|\\[\\d+\\]" +                                  // [1], [2]
+    "|\\[Anhang[^\\]]*\\]|\\[Anlage[^\\]]*\\]" +    // [Anhang A]
+    "|\\((?=[^)]*(?:" + _EV_MARKERS + "))[^)]{3,}\\)" + // (... marker word ...)
+    "|§\\s*\\d+[\\w.]*" +                            // §3.2, § 12
+  ")",
+  "i"
+);
 
 /* ─── Recursively highlight evidence references in React children ─── */
 function highlightEvidence(
@@ -112,7 +138,11 @@ function highlightEvidence(
   return children;
 }
 
-/* ─── Split markdown into sections by ## headings ─── */
+/* ─── Split markdown into sections by headings ─── */
+// Matches #, ##, or ### headings that start with a section number (e.g. "## 3. Ist-Zustand")
+// Also matches any ##-level heading as fallback. This handles AI using #/##/### inconsistently.
+const SECTION_HEADING_RE = /^(#{1,3})\s+(.+)$/;
+
 function splitIntoSections(md: string): { heading: string; body: string }[] {
   const lines = md.split("\n");
   const sections: { heading: string; body: string }[] = [];
@@ -120,14 +150,17 @@ function splitIntoSections(md: string): { heading: string; body: string }[] {
   let currentBody: string[] = [];
 
   for (const line of lines) {
-    if (line.startsWith("## ")) {
+    const m = line.match(SECTION_HEADING_RE);
+    // Accept any markdown heading that either: (a) starts with a number like "3. ...",
+    // or (b) is an h2 heading (##). This catches #/##/### with numbered sections.
+    if (m && (/^\d+\./.test(m[2].trim()) || m[1] === "##")) {
       if (currentHeading || currentBody.length > 0) {
         sections.push({
           heading: currentHeading,
           body: currentBody.join("\n"),
         });
       }
-      currentHeading = line.replace(/^## /, "").trim();
+      currentHeading = m[2].trim();
       currentBody = [];
     } else {
       currentBody.push(line);
@@ -139,26 +172,34 @@ function splitIntoSections(md: string): { heading: string; body: string }[] {
   return sections;
 }
 
-/* ─── Count how many ## headings exist in text so far ─── */
+/* ─── Count how many section headings exist in text so far ─── */
 function countHeadings(text: string): number {
-  return (text.match(/^## /gm) || []).length;
+  // Count lines matching #{1,3} followed by a numbered section (e.g. "## 3. ...")
+  return (text.match(/^#{1,3}\s+\d+\./gm) || []).length;
 }
 
-/* ─── Map chart IDs to EN 16247-1 fixed section indices (0-based) ─── */
-// 0="1. Zusammenfassung" 1="2. Hintergrund" 2="3. Ist-Zustand"
-// 3="4. Maßnahmen" 4="5. Bewertung" 5="6. Wirtschaftlichkeit"
-// 6="7. Umsetzungsplan" 7="8. Qualitätssicherung" 8="9. Anhänge"
-const CHART_SECTION_INDEX: Record<string, number> = {
-  energy: 2,    // "3. Ist-Zustand und Energiedatenanalyse"
-  donut: 2,     // same section — energy structure breakdown
-  benchmark: 4, // "5. Bewertung und Priorisierung"
-  co2: 4,       // same section — emissions assessment
-  roi: 5,       // "6. Wirtschaftlichkeitsberechnung"
-  savings: 3,   // "4. Maßnahmenvorschläge"
+/* ─── Map chart IDs to EN 16247-1 section NUMBERS (from heading text) ─── */
+// Matches by the leading number in "## 3. Ist-Zustand", not by array index.
+// This avoids index-shift when AI generates preamble before the first heading.
+const CHART_SECTION_NUMBER: Record<string, number> = {
+  energy: 3,    // "3. Ist-Zustand und Energiedatenanalyse"
+  donut: 3,     // same section — energy structure breakdown
+  benchmark: 5, // "5. Bewertung und Priorisierung"
+  co2: 5,       // same section — emissions assessment
+  roi: 6,       // "6. Wirtschaftlichkeitsberechnung"
+  savings: 4,   // "4. Maßnahmenvorschläge"
 };
 
-function findChartsForSectionIndex(sectionIdx: number, charts: { id: string; dataUrl: string; title: string }[]): { id: string; dataUrl: string; title: string }[] {
-  return charts.filter(c => CHART_SECTION_INDEX[c.id] === sectionIdx);
+/** Extract leading number from heading text, e.g. "3. Ist-Zustand" → 3 */
+function extractSectionNumber(heading: string): number | null {
+  const m = heading.match(/^(\d+)\./);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function findChartsForSection(heading: string, charts: { id: string; dataUrl: string; title: string }[]): { id: string; dataUrl: string; title: string }[] {
+  const num = extractSectionNumber(heading);
+  if (num === null) return [];
+  return charts.filter(c => CHART_SECTION_NUMBER[c.id] === num);
 }
 
 export default function ReportPage() {
@@ -193,6 +234,12 @@ export default function ReportPage() {
   const [embeddedCharts, setEmbeddedCharts] = useState<
     { id: string; dataUrl: string; title: string }[]
   >([]);
+
+  // Two-step verification states
+  const [verified, setVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyStepIndex, setVerifyStepIndex] = useState(-1);
+  const [genPhase, setGenPhase] = useState(0);
 
   const fullTextRef = useRef("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -254,6 +301,14 @@ export default function ReportPage() {
     }
   }, [fullText, isStreaming]);
 
+  // Generation phase cycling (progress messages)
+  useEffect(() => {
+    if (!isStreaming) { setGenPhase(0); return; }
+    setGenPhase(0);
+    const id = setInterval(() => setGenPhase(p => Math.min(p + 1, 4)), 3500);
+    return () => clearInterval(id);
+  }, [isStreaming]);
+
   // Task 5: Detect scope drift after generation completes
   useEffect(() => {
     if (streamDone && fullText) {
@@ -301,6 +356,7 @@ export default function ReportPage() {
           setFullText(savedReport);
           fullTextRef.current = savedReport;
           setStreamDone(true);
+          setVerified(true); // Restored reports are pre-verified
           // Extract measures from evidence blocks
           const regex = /\[EVIDENCE_START\]([\s\S]*?)\[EVIDENCE_END\]/g;
           let match;
@@ -329,6 +385,9 @@ export default function ReportPage() {
     setEditingSection(null);
     setScopeDriftDetected(false);
     setStreamingSectionCount(0);
+    setVerified(false);
+    setVerifying(false);
+    setVerifyStepIndex(-1);
     fullTextRef.current = "";
 
     try {
@@ -379,6 +438,22 @@ export default function ReportPage() {
       setSelectedMeasure(m);
       setEvidencePanelOpen(true);
     }
+  };
+
+  // Two-step verification handler
+  const handleVerify = async () => {
+    setVerifying(true);
+    const steps = (t.report as any).verifySteps as string[];
+    const delays = [900, 1100, 900, 900];
+    for (let i = 0; i < steps.length; i++) {
+      setVerifyStepIndex(i);
+      await new Promise(r => setTimeout(r, delays[i]));
+    }
+    setVerifyStepIndex(steps.length);
+    await new Promise(r => setTimeout(r, 500));
+    setVerified(true);
+    setVerifying(false);
+    setVerifyStepIndex(-1);
   };
 
   // Filter out evidence blocks from display text
@@ -437,7 +512,7 @@ export default function ReportPage() {
 
   // Custom markdown components with evidence highlighting (Task 6)
   const createMdComponents = (
-    sectionIdx?: number
+    _sectionIdx?: number
   ): React.ComponentProps<typeof ReactMarkdown>["components"] => ({
     h1: ({ node: _n, ...props }) => (
       <h1
@@ -459,7 +534,7 @@ export default function ReportPage() {
     ),
     p: ({ node: _n, children, ...props }) => (
       <p className="text-sm text-gray-700 leading-relaxed mb-3" {...props}>
-        {highlightEvidence(children, handleEvidenceClick, t.report.evidenceRef)}
+        {verified ? highlightEvidence(children, handleEvidenceClick, t.report.evidenceRef) : children}
       </p>
     ),
     ul: ({ node: _n, ...props }) => (
@@ -470,7 +545,7 @@ export default function ReportPage() {
     ),
     li: ({ node: _n, children, ...props }) => (
       <li className="text-sm text-gray-700 leading-relaxed" {...props}>
-        {highlightEvidence(children, handleEvidenceClick, t.report.evidenceRef)}
+        {verified ? highlightEvidence(children, handleEvidenceClick, t.report.evidenceRef) : children}
       </li>
     ),
     strong: ({ node: _n, ...props }) => (
@@ -587,7 +662,7 @@ export default function ReportPage() {
                           className="animate-spin"
                           style={{ color: "#D97706" }}
                         />
-                        <span className="font-medium">{t.report.generating}</span>
+                        <span className="font-medium">{((t.report as any).genSteps as string[])[genPhase] ?? t.report.generating}</span>
                       </div>
                       {streamingSectionCount > 0 && (
                         <span
@@ -604,6 +679,34 @@ export default function ReportPage() {
                         </span>
                       )}
                     </div>
+                  )}
+
+                  {/* Verification progress */}
+                  {verifying && (
+                    <div className="flex items-center gap-2 text-xs" style={{ color: "#1D4ED8" }}>
+                      <Loader2 size={13} className="animate-spin" style={{ color: "#3B82F6" }} />
+                      <span className="font-medium">{((t.report as any).verifySteps as string[])[verifyStepIndex] ?? ""}</span>
+                    </div>
+                  )}
+
+                  {/* Verify Evidence button */}
+                  {streamDone && !verified && !verifying && (
+                    <button
+                      onClick={handleVerify}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+                      style={{ backgroundColor: "#3B82F6" }}
+                    >
+                      <ShieldCheck size={14} />
+                      {(t.report as any).verifyBtn}
+                    </button>
+                  )}
+
+                  {/* Verified badge */}
+                  {verified && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}>
+                      <CheckCircle2 size={13} />
+                      {(t.report as any).verifiedLabel}
+                    </span>
                   )}
 
                   {/* Task 2: Lock Draft toggle - show only when done */}
@@ -646,7 +749,7 @@ export default function ReportPage() {
 
               {/* Task 5: Scope Drift banner */}
               <AnimatePresence>
-                {scopeDriftDetected && streamDone && (
+                {scopeDriftDetected && verified && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -671,7 +774,7 @@ export default function ReportPage() {
                         Object.values(sectionStates).filter((s) => s.scopeDrift)
                           .length
                       }{" "}
-                      {locale === "de" ? "Abschnitte" : "sections"}
+                      {t.report.scopeDriftSections}
                     </span>
                   </motion.div>
                 )}
@@ -738,14 +841,14 @@ export default function ReportPage() {
                           key={idx}
                           className="relative group mb-2"
                           style={{
-                            borderLeft: state.scopeDrift
+                            borderLeft: state.scopeDrift && verified
                               ? "3px solid #EF4444"
                               : state.locked
                               ? "3px solid #D97706"
                               : "3px solid transparent",
                             paddingLeft: "12px",
                             borderRadius: "4px",
-                            backgroundColor: state.scopeDrift
+                            backgroundColor: state.scopeDrift && verified
                               ? "#FEF2F220"
                               : state.locked
                               ? "#FEF3C710"
@@ -761,7 +864,7 @@ export default function ReportPage() {
                               </h2>
 
                               {/* Task 5: Scope drift flag */}
-                              {state.scopeDrift && (
+                              {state.scopeDrift && verified && (
                                 <span
                                   className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded"
                                   style={{
@@ -867,7 +970,7 @@ export default function ReportPage() {
                               </ReactMarkdown>
 
                               {/* Task 5: Scope drift underline on flagged sections */}
-                              {state.scopeDrift && (
+                              {state.scopeDrift && verified && (
                                 <div
                                   className="absolute bottom-0 left-0 right-0 h-0.5"
                                   style={{
@@ -890,7 +993,7 @@ export default function ReportPage() {
 
                           {/* Embedded chart for this section */}
                           {streamDone && embeddedCharts.length > 0 && (() => {
-                            const matched = findChartsForSectionIndex(idx, embeddedCharts);
+                            const matched = findChartsForSection(sec.heading, embeddedCharts);
                             if (matched.length === 0) return null;
                             return (
                               <div className={`my-3 ${matched.length > 1 ? "grid grid-cols-2 gap-3" : ""}`}>
@@ -916,8 +1019,8 @@ export default function ReportPage() {
                   {/* Unmatched embedded charts (section index out of range) */}
                   {streamDone && embeddedCharts.length > 0 && (() => {
                     const matchedIds = new Set<string>();
-                    sections.forEach((_, idx) => {
-                      findChartsForSectionIndex(idx, embeddedCharts).forEach(c => matchedIds.add(c.id));
+                    sections.forEach((sec) => {
+                      findChartsForSection(sec.heading, embeddedCharts).forEach(c => matchedIds.add(c.id));
                     });
                     const unmatched = embeddedCharts.filter(c => !matchedIds.has(c.id));
                     if (unmatched.length === 0) return null;
@@ -943,16 +1046,74 @@ export default function ReportPage() {
                     );
                   })()}
 
-                  {/* Completion message */}
-                  {streamDone && (
+                  {/* Pre-verify: report generated, prompt to verify */}
+                  {streamDone && !verified && !verifying && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6 p-5 rounded-xl border text-sm"
+                      style={{ borderColor: "#FDE68A", backgroundColor: "#FFFBEB" }}
+                    >
+                      <p className="text-amber-800 font-semibold">
+                        {(t.report as any).reportGenerated}
+                      </p>
+                      <p className="text-amber-700 mt-1 text-xs">
+                        {(t.report as any).reportGeneratedNote}
+                      </p>
+                      <button
+                        onClick={handleVerify}
+                        className="mt-3 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                        style={{ backgroundColor: "#3B82F6" }}
+                      >
+                        <ShieldCheck size={15} />
+                        {(t.report as any).verifyBtn}
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {/* Verification in progress: stepper */}
+                  {streamDone && verifying && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6 p-5 rounded-xl border"
+                      style={{ borderColor: "#93C5FD", backgroundColor: "#EFF6FF" }}
+                    >
+                      <div className="space-y-2.5">
+                        {((t.report as any).verifySteps as string[]).map((step: string, i: number) => (
+                          <div key={i} className="flex items-center gap-2.5 text-sm">
+                            {i < verifyStepIndex ? (
+                              <CheckCircle2 size={15} style={{ color: "#3B82F6" }} />
+                            ) : i === verifyStepIndex ? (
+                              <Loader2 size={15} className="animate-spin" style={{ color: "#3B82F6" }} />
+                            ) : (
+                              <div className="w-[15px] h-[15px] rounded-full border-2" style={{ borderColor: "#CBD5E1" }} />
+                            )}
+                            <span style={{ color: i <= verifyStepIndex ? "#1E40AF" : "#94A3B8", fontWeight: i <= verifyStepIndex ? 500 : 400 }}>
+                              {step}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#BFDBFE" }}>
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: "#3B82F6" }}
+                          initial={{ width: "0%" }}
+                          animate={{ width: `${Math.min(((verifyStepIndex + 1) / ((t.report as any).verifySteps as string[]).length) * 100, 100)}%` }}
+                          transition={{ duration: 0.4 }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Post-verify: verification complete */}
+                  {streamDone && verified && (
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="mt-6 p-4 rounded-xl border text-sm"
-                      style={{
-                        borderColor: "#86EFAC",
-                        backgroundColor: "#DCFCE7",
-                      }}
+                      style={{ borderColor: "#86EFAC", backgroundColor: "#DCFCE7" }}
                     >
                       <p className="text-green-800 font-semibold">
                         {t.streaming.doneTitle}
@@ -1044,9 +1205,7 @@ export default function ReportPage() {
                         className="w-2 h-2 rounded-full animate-pulse"
                         style={{ backgroundColor: "#D97706" }}
                       />
-                      {locale === "de"
-                        ? "Maßnahmen werden extrahiert..."
-                        : "Extracting measures..."}
+                      {t.report.extractingMeasures}
                     </div>
                   )}
                 </div>
