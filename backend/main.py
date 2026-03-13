@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import store
-from routers import extract, report, compliance, upload
+from routers import extract, report, compliance, upload, live_audit
 from routers import cases as cases_router
 from routers import documents as documents_router
 from routers import ledger as ledger_router
@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="AuditOS API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="AuditAI API", version="0.2.0", lifespan=lifespan)
 
 _origins = ["http://localhost:3000"]
 _frontend_url = os.environ.get("FRONTEND_URL")
@@ -48,6 +48,7 @@ app.include_router(ledger_router.router, prefix="/cases/{case_id}/ledger", tags=
 app.include_router(reviews_router.router, prefix="/reviews", tags=["reviews"])
 app.include_router(audit_log_router.router, prefix="/audit-log", tags=["audit-log"])
 app.include_router(measures_router.router, prefix="/cases/{case_id}/measures", tags=["measures"])
+app.include_router(live_audit.router, prefix="/live", tags=["live-audit"])
 
 
 @app.get("/health")

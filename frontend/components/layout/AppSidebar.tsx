@@ -17,6 +17,7 @@ import {
   ScrollText,
   ChevronLeft,
   ChevronRight,
+  Radio,
 } from "lucide-react";
 import { useAppStore } from "@/lib/stores/app-store";
 import { useT } from "@/lib/i18n";
@@ -68,6 +69,11 @@ export function AppSidebar() {
       href: `/cases/${caseId}/overview`,
       label: t.nav.overview ?? "Ubersicht",
       icon: FileText,
+    },
+    {
+      href: `/cases/${caseId}/live-audit`,
+      label: t.nav.liveAudit ?? "Live Audit",
+      icon: Radio,
     },
     {
       href: `/cases/${caseId}/documents`,
@@ -174,17 +180,17 @@ export function AppSidebar() {
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
         <img
           src="/logo.png"
-          alt="AuditOS"
+          alt="AuditAI"
           className="flex-shrink-0"
           style={{ height: 30, width: "auto" }}
         />
         <div className="flex-1">
-          <span className="text-white text-sm font-semibold tracking-tight">AuditOS</span>
+          <span className="text-white text-sm font-semibold tracking-tight">AuditAI</span>
           <span
             className="block text-[10px] font-medium tracking-wide"
             style={{ color: "#FCD34D" }}
           >
-            DEMO &middot; v0.2
+            BETA &middot; v1.0
           </span>
         </div>
         {/* Language toggle */}

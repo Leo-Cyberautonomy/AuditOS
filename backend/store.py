@@ -18,6 +18,7 @@ from models import (
     Measure,
     MeasureEvidence,
 )
+from models.live_session import LiveSession, LiveFinding
 
 # ── Storage dicts keyed by ID ──────────────────────────────────────────────
 
@@ -28,6 +29,8 @@ ledger_entries: Dict[str, LedgerEntry] = {}
 review_items: Dict[str, ReviewItem] = {}
 measures: Dict[str, Measure] = {}
 audit_log: List[AuditEvent] = []
+live_sessions: Dict[str, LiveSession] = {}
+live_findings: Dict[str, LiveFinding] = {}
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -186,6 +189,8 @@ def init() -> None:
     review_items.clear()
     measures.clear()
     audit_log.clear()
+    live_sessions.clear()
+    live_findings.clear()
 
     seed_files = [
         "case_food_manufacturing.json",

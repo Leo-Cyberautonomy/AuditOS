@@ -170,8 +170,8 @@ export default function ExportsPage() {
       title: locale === "de" ? "Vorlage Vorbefüllung CSV" : "Template Prefill CSV",
       description:
         locale === "de"
-          ? "Vorbefüllte Felder gemäß BGBl. II Nr. 242/2023 als CSV exportieren. Zur manuellen Eingabe in die E-Control Meldeplattform."
-          : "Export prefilled fields per BGBl. II Nr. 242/2023 as CSV. For manual entry into the E-Control filing platform.",
+          ? "Vorbefüllte Compliance-Felder als CSV exportieren. Zur Einreichung bei der zuständigen Behörde."
+          : "Export prefilled compliance fields as CSV. For submission to the relevant regulatory authority.",
       format: "CSV",
       loading: loadingCompliance,
       done: doneCompliance,
@@ -312,7 +312,7 @@ export default function ExportsPage() {
         })}
       </div>
 
-      {/* E-Control Portal Link */}
+      {/* Regulatory Portal Link */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -328,12 +328,12 @@ export default function ExportsPage() {
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold" style={{ color: "#0F1117" }}>
-            {locale === "de" ? "E-Control Meldeplattform" : "E-Control Filing Platform"}
+            {locale === "de" ? "Behörden-Meldeplattform" : "Regulatory Filing Platform"}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>
             {locale === "de"
-              ? "CSV-Dateien können direkt in die E-Control Meldeplattform hochgeladen werden."
-              : "CSV files can be uploaded directly to the E-Control filing platform."}
+              ? "CSV-Dateien können direkt bei der zuständigen Behörde eingereicht werden."
+              : "CSV files can be submitted directly to the relevant regulatory authority."}
           </p>
         </div>
         <a

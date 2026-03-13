@@ -15,10 +15,11 @@ def _load_demo():
 
 
 @router.get("/prefill")
-async def prefill_eeff_skv():
+async def prefill_compliance_form():
     """
-    Returns pre-filled EEff-SKV fields based on the demo dataset.
+    Returns pre-filled compliance form fields based on the demo dataset.
     Fields are color-coded: green (calculated), yellow (needs review), red (missing).
+    Supports international standards (ISO 50001, EN 16247-1).
     """
     data = _load_demo()
     totals = data["totals"]
@@ -27,121 +28,121 @@ async def prefill_eeff_skv():
     measures = data["measures"]
 
     fields = [
-        # §3 Unternehmensdaten
+        # Section 1: Company Information
         {
-            "section": "§3",
+            "section": "§1",
             "key": "company_name",
-            "label": "Unternehmensname",
+            "label": "Company Name",
             "value": company["name"],
             "status": "green",
-            "source": "Stammdaten",
+            "source": "Company records",
         },
         {
-            "section": "§3",
+            "section": "§1",
             "key": "company_address",
-            "label": "Anschrift",
+            "label": "Address",
             "value": company["address"],
             "status": "green",
-            "source": "Stammdaten",
+            "source": "Company records",
         },
         {
-            "section": "§3",
+            "section": "§1",
             "key": "nace_code",
-            "label": "ÖNACE-Code",
+            "label": "NACE Code",
             "value": company["nace_code"],
             "status": "green",
-            "source": "Stammdaten",
+            "source": "Company records",
+        },
+        {
+            "section": "§1",
+            "key": "employees",
+            "label": "Number of Employees",
+            "value": company["employees"],
+            "status": "green",
+            "source": "Company records",
+        },
+        # Section 2: Energy Consumption
+        {
+            "section": "§2",
+            "key": "electricity_kwh",
+            "label": "Electricity Consumption",
+            "value": totals["strom_kwh"],
+            "unit": "kWh/year",
+            "status": "green",
+            "source": "Calculated from billing data (11 of 12 months)",
+        },
+        {
+            "section": "§2",
+            "key": "gas_kwh",
+            "label": "Natural Gas Consumption",
+            "value": totals["gas_kwh"],
+            "unit": "kWh/year",
+            "status": "green",
+            "source": "Calculated from billing data (11 of 12 months)",
+        },
+        {
+            "section": "§2",
+            "key": "fernwaerme_kwh",
+            "label": "District Heating",
+            "value": 0,
+            "unit": "kWh/year",
+            "status": "green",
+            "source": "No district heating connection per site survey",
+        },
+        {
+            "section": "§2",
+            "key": "total_kwh",
+            "label": "Total Energy Consumption",
+            "value": totals["total_kwh"],
+            "unit": "kWh/year",
+            "status": "green",
+            "source": "Sum of all energy carriers",
+        },
+        # Section 3: Waste Heat Potential
+        {
+            "section": "§3",
+            "key": "waste_heat_lt40",
+            "label": "Waste Heat Potential < 40°C",
+            "value": 18500,
+            "unit": "kWh/year",
+            "status": "yellow",
+            "source": "Estimated from boiler flue gas temperature measurement (ISO 50002)",
+            "review_note": "Recommendation: on-site flue gas volume flow measurement for precision",
         },
         {
             "section": "§3",
-            "key": "employees",
-            "label": "Mitarbeiteranzahl",
-            "value": company["employees"],
-            "status": "green",
-            "source": "Stammdaten",
-        },
-        # §4 Energieverbrauch
-        {
-            "section": "§4",
-            "key": "electricity_kwh",
-            "label": "Elektrischer Energieverbrauch",
-            "value": totals["strom_kwh"],
-            "unit": "kWh/Jahr",
-            "status": "green",
-            "source": "Berechnet aus Rechnungsdaten (11 von 12 Monaten)",
-        },
-        {
-            "section": "§4",
-            "key": "gas_kwh",
-            "label": "Erdgasverbrauch",
-            "value": totals["gas_kwh"],
-            "unit": "kWh/Jahr",
-            "status": "green",
-            "source": "Berechnet aus Rechnungsdaten (11 von 12 Monaten)",
-        },
-        {
-            "section": "§4",
-            "key": "fernwaerme_kwh",
-            "label": "Fernwärme",
-            "value": 0,
-            "unit": "kWh/Jahr",
-            "status": "green",
-            "source": "Kein Fernwärmeanschluss laut Bestandsaufnahme",
-        },
-        {
-            "section": "§4",
-            "key": "total_kwh",
-            "label": "Gesamtenergieverbrauch",
-            "value": totals["total_kwh"],
-            "unit": "kWh/Jahr",
-            "status": "green",
-            "source": "Summe aller Energieträger",
-        },
-        # §5 Abwärmepotenzial
-        {
-            "section": "§5",
-            "key": "waste_heat_lt40",
-            "label": "Abwärmepotenzial < 40°C",
-            "value": 18500,
-            "unit": "kWh/Jahr",
-            "status": "yellow",
-            "source": "Schätzwert aus Kesselabgas-Temperaturmessung (DIN 4701)",
-            "review_note": "Empfehlung: Vor-Ort-Messung des Abgasvolumenstroms zur Präzisierung",
-        },
-        {
-            "section": "§5",
             "key": "waste_heat_40_100",
-            "label": "Abwärmepotenzial 40–100°C",
+            "label": "Waste Heat Potential 40–100°C",
             "value": None,
-            "unit": "kWh/Jahr",
+            "unit": "kWh/year",
             "status": "red",
             "source": None,
-            "review_note": "Keine Messdaten verfügbar — Dampfkondensatmessung erforderlich",
+            "review_note": "No measurement data available — steam condensate measurement required",
         },
-        # §6 Gebäudehülle
+        # Section 4: Building Envelope
         {
-            "section": "§6",
+            "section": "§4",
             "key": "building_area_m2",
-            "label": "Beheizbare Nutzfläche",
+            "label": "Heated Floor Area",
             "value": company["building_area_m2"],
             "unit": "m²",
             "status": "green",
-            "source": "Grundriss-Bestandsaufnahme",
+            "source": "Floor plan survey",
         },
         {
-            "section": "§6",
+            "section": "§4",
             "key": "specific_energy_kwh_m2",
-            "label": "Spezifischer Energiebedarf",
+            "label": "Specific Energy Demand",
             "value": round(totals["total_kwh"] / company["building_area_m2"], 1),
-            "unit": "kWh/m²·Jahr",
+            "unit": "kWh/m²·year",
             "status": "green",
-            "source": "Berechnet: Gesamtenergie / Nutzfläche",
+            "source": "Calculated: total energy / floor area",
         },
-        # §8 Maßnahmen
+        # Section 5: Recommended Measures
         {
-            "section": "§8",
+            "section": "§5",
             "key": "measures_summary",
-            "label": "Empfohlene Effizienzmaßnahmen",
+            "label": "Recommended Efficiency Measures",
             "value": [
                 {
                     "id": m["measure_id"],
@@ -152,53 +153,53 @@ async def prefill_eeff_skv():
                 for m in measures[:3]
             ],
             "status": "yellow",
-            "source": "KI-generiert aus Messdaten — Bestätigung durch Auditor erforderlich",
-            "review_note": "Bitte prüfen Sie die drei Prioritätsmaßnahmen und bestätigen Sie die Angaben",
+            "source": "AI-generated from measurement data — auditor confirmation required",
+            "review_note": "Please review the top-3 priority measures and confirm the data",
         },
-        # §9 CO2
+        # Section 6: CO₂ Emissions
         {
-            "section": "§9",
+            "section": "§6",
             "key": "co2_electricity_kg",
-            "label": "CO₂-Äquivalent Strom",
-            "value": round(totals["strom_kwh"] * 0.132 / 1000, 1),
-            "unit": "t CO₂/Jahr",
+            "label": "CO₂ Equivalent — Electricity",
+            "value": round(totals["strom_kwh"] * 0.233 / 1000, 1),
+            "unit": "t CO₂/year",
             "status": "yellow",
-            "source": "Emissionsfaktor 0,132 kg CO₂/kWh (E-Control 2023)",
-            "review_note": "Emissionsfaktor bitte mit aktuellem E-Control-Wert abgleichen",
+            "source": "Emission factor 0.233 kg CO₂/kWh (EU average 2024)",
+            "review_note": "Please verify with local grid emission factor",
         },
         {
-            "section": "§9",
+            "section": "§6",
             "key": "co2_gas_kg",
-            "label": "CO₂-Äquivalent Erdgas",
+            "label": "CO₂ Equivalent — Natural Gas",
             "value": round(totals["gas_kwh"] * 0.201 / 1000, 1),
-            "unit": "t CO₂/Jahr",
+            "unit": "t CO₂/year",
             "status": "green",
-            "source": "Emissionsfaktor 0,201 kg CO₂/kWh Erdgas (IPCC 2023)",
+            "source": "Emission factor 0.201 kg CO₂/kWh (IPCC 2023)",
         },
-        # §10 Auditor
+        # Section 7: Auditor Information
         {
-            "section": "§10",
+            "section": "§7",
             "key": "auditor_name",
-            "label": "Name des Auditors",
+            "label": "Auditor Name",
             "value": auditor["name"],
             "status": "green",
-            "source": "Auditorprofil",
+            "source": "Auditor profile",
         },
         {
-            "section": "§10",
+            "section": "§7",
             "key": "auditor_reg_number",
-            "label": "E-Control Registrierungsnummer",
+            "label": "Auditor Registration Number",
             "value": auditor["e_control_id"],
             "status": "green",
-            "source": "Auditorprofil (§45 EEffG)",
+            "source": "Auditor profile (ISO 50002 certified)",
         },
         {
-            "section": "§10",
+            "section": "§7",
             "key": "audit_date",
-            "label": "Auditdatum",
-            "value": "14.11.2024",
+            "label": "Audit Date",
+            "value": "2025-02-14",
             "status": "green",
-            "source": "Vor-Ort-Begehung",
+            "source": "On-site inspection",
         },
     ]
 
@@ -222,8 +223,8 @@ async def prefill_eeff_skv():
 
 
 @router.get("/case/{case_id}/prefill")
-async def prefill_case_eeff_skv(case_id: str):
-    """Returns pre-filled EEff-SKV fields based on actual case data from store."""
+async def prefill_case_compliance_form(case_id: str):
+    """Returns pre-filled compliance form fields based on actual case data from store."""
     case = store_module.cases.get(case_id)
     if not case:
         raise HTTPException(404, f"Case {case_id} not found")
@@ -239,46 +240,46 @@ async def prefill_case_eeff_skv(case_id: str):
     area = case.company.building_area_m2 or 1
     specific = round(total / area, 1)
 
-    co2_strom = round(strom * 0.132 / 1000, 1)
+    co2_strom = round(strom * 0.233 / 1000, 1)
     co2_gas = round(gas * 0.201 / 1000, 1)
 
     fields = [
-        # §3 Unternehmensdaten
-        {"section": "§3", "key": "company_name", "label": "Unternehmensname", "value": case.company.name, "status": "green", "source": "Stammdaten"},
-        {"section": "§3", "key": "company_address", "label": "Anschrift", "value": case.company.address, "status": "green", "source": "Stammdaten"},
-        {"section": "§3", "key": "nace_code", "label": "ÖNACE-Code", "value": case.company.nace_code, "status": "green", "source": "Stammdaten"},
-        {"section": "§3", "key": "employees", "label": "Mitarbeiteranzahl", "value": case.company.employees, "status": "green", "source": "Stammdaten"},
-        # §4 Energieverbrauch
-        {"section": "§4", "key": "electricity_kwh", "label": "Elektrischer Energieverbrauch", "value": strom, "unit": "kWh/Jahr", "status": "green", "source": "Berechnet aus Nachweisbuch"},
-        {"section": "§4", "key": "gas_kwh", "label": "Erdgasverbrauch", "value": gas, "unit": "kWh/Jahr", "status": "green", "source": "Berechnet aus Nachweisbuch"},
-        {"section": "§4", "key": "fernwaerme_kwh", "label": "Fernwärme", "value": fw, "unit": "kWh/Jahr", "status": "green", "source": "Berechnet aus Nachweisbuch"},
-        {"section": "§4", "key": "total_kwh", "label": "Gesamtenergieverbrauch", "value": total, "unit": "kWh/Jahr", "status": "green", "source": "Summe aller Energieträger"},
-        # §5 Abwärmepotenzial
-        {"section": "§5", "key": "waste_heat_lt40", "label": "Abwärmepotenzial < 40°C", "value": 18500, "unit": "kWh/Jahr", "status": "yellow", "source": "Schätzwert", "review_note": "Vor-Ort-Messung des Abgasvolumenstroms empfohlen"},
-        {"section": "§5", "key": "waste_heat_40_100", "label": "Abwärmepotenzial 40–100°C", "value": None, "unit": "kWh/Jahr", "status": "red", "source": None, "review_note": "Keine Messdaten verfügbar — Dampfkondensatmessung erforderlich"},
-        # §6 Gebäudehülle
-        {"section": "§6", "key": "building_area_m2", "label": "Beheizbare Nutzfläche", "value": case.company.building_area_m2, "unit": "m²", "status": "green", "source": "Stammdaten"},
-        {"section": "§6", "key": "specific_energy_kwh_m2", "label": "Spezifischer Energiebedarf", "value": specific, "unit": "kWh/m²·Jahr", "status": "green", "source": "Berechnet: Gesamtenergie / Nutzfläche"},
-        # §8 Maßnahmen
+        # §1 Company Information
+        {"section": "§1", "key": "company_name", "label": "Company Name", "value": case.company.name, "status": "green", "source": "Company records"},
+        {"section": "§1", "key": "company_address", "label": "Address", "value": case.company.address, "status": "green", "source": "Company records"},
+        {"section": "§1", "key": "nace_code", "label": "NACE Code", "value": case.company.nace_code, "status": "green", "source": "Company records"},
+        {"section": "§1", "key": "employees", "label": "Number of Employees", "value": case.company.employees, "status": "green", "source": "Company records"},
+        # §2 Energy Consumption
+        {"section": "§2", "key": "electricity_kwh", "label": "Electricity Consumption", "value": strom, "unit": "kWh/year", "status": "green", "source": "Calculated from evidence ledger"},
+        {"section": "§2", "key": "gas_kwh", "label": "Natural Gas Consumption", "value": gas, "unit": "kWh/year", "status": "green", "source": "Calculated from evidence ledger"},
+        {"section": "§2", "key": "fernwaerme_kwh", "label": "District Heating", "value": fw, "unit": "kWh/year", "status": "green", "source": "Calculated from evidence ledger"},
+        {"section": "§2", "key": "total_kwh", "label": "Total Energy Consumption", "value": total, "unit": "kWh/year", "status": "green", "source": "Sum of all energy carriers"},
+        # §3 Waste Heat
+        {"section": "§3", "key": "waste_heat_lt40", "label": "Waste Heat Potential < 40°C", "value": 18500, "unit": "kWh/year", "status": "yellow", "source": "Estimated", "review_note": "On-site flue gas volume measurement recommended"},
+        {"section": "§3", "key": "waste_heat_40_100", "label": "Waste Heat Potential 40–100°C", "value": None, "unit": "kWh/year", "status": "red", "source": None, "review_note": "No measurement data available — steam condensate measurement required"},
+        # §4 Building
+        {"section": "§4", "key": "building_area_m2", "label": "Heated Floor Area", "value": case.company.building_area_m2, "unit": "m²", "status": "green", "source": "Company records"},
+        {"section": "§4", "key": "specific_energy_kwh_m2", "label": "Specific Energy Demand", "value": specific, "unit": "kWh/m²·year", "status": "green", "source": "Calculated: total energy / floor area"},
+        # §5 Measures
         {
-            "section": "§8",
+            "section": "§5",
             "key": "measures_summary",
-            "label": "Empfohlene Effizienzmaßnahmen",
+            "label": "Recommended Efficiency Measures",
             "value": [
                 {"id": m.measure_id, "title": m.title, "saving_eur": m.annual_saving_eur, "payback_years": m.payback_years}
                 for m in sorted(case_measures, key=lambda x: x.measure_id)[:3]
             ],
             "status": "yellow" if case_measures else "red",
-            "source": "KI-generiert — Bestätigung erforderlich",
-            "review_note": "Bitte prüfen Sie die Maßnahmen",
+            "source": "AI-generated — confirmation required",
+            "review_note": "Please review the measures",
         },
-        # §9 CO2
-        {"section": "§9", "key": "co2_electricity_kg", "label": "CO₂-Äquivalent Strom", "value": co2_strom, "unit": "t CO₂/Jahr", "status": "yellow", "source": "Emissionsfaktor 0,132 kg CO₂/kWh (E-Control 2023)", "review_note": "Bitte mit aktuellem E-Control-Wert abgleichen"},
-        {"section": "§9", "key": "co2_gas_kg", "label": "CO₂-Äquivalent Erdgas", "value": co2_gas, "unit": "t CO₂/Jahr", "status": "green", "source": "Emissionsfaktor 0,201 kg CO₂/kWh (IPCC 2023)"},
-        # §10 Auditor
-        {"section": "§10", "key": "auditor_name", "label": "Name des Auditors", "value": case.auditor.name, "status": "green", "source": "Auditorprofil"},
-        {"section": "§10", "key": "auditor_reg_number", "label": "E-Control Registrierungsnummer", "value": case.auditor.e_control_id, "status": "green", "source": "Auditorprofil (§45 EEffG)"},
-        {"section": "§10", "key": "audit_date", "label": "Auditdatum", "value": "14.11.2024", "status": "green", "source": "Vor-Ort-Begehung"},
+        # §6 CO₂
+        {"section": "§6", "key": "co2_electricity_kg", "label": "CO₂ Equivalent — Electricity", "value": co2_strom, "unit": "t CO₂/year", "status": "yellow", "source": "Emission factor 0.233 kg CO₂/kWh (EU average 2024)", "review_note": "Please verify with local grid emission factor"},
+        {"section": "§6", "key": "co2_gas_kg", "label": "CO₂ Equivalent — Natural Gas", "value": co2_gas, "unit": "t CO₂/year", "status": "green", "source": "Emission factor 0.201 kg CO₂/kWh (IPCC 2023)"},
+        # §7 Auditor
+        {"section": "§7", "key": "auditor_name", "label": "Auditor Name", "value": case.auditor.name, "status": "green", "source": "Auditor profile"},
+        {"section": "§7", "key": "auditor_reg_number", "label": "Auditor Registration Number", "value": case.auditor.e_control_id, "status": "green", "source": "Auditor profile (ISO 50002 certified)"},
+        {"section": "§7", "key": "audit_date", "label": "Audit Date", "value": "2025-02-14", "status": "green", "source": "On-site inspection"},
     ]
 
     green_count = sum(1 for f in fields if f["status"] == "green")
