@@ -22,6 +22,7 @@ import {
 import { useAppStore } from "@/lib/stores/app-store";
 import { useT } from "@/lib/i18n";
 import { DEMO_AUDITOR } from "@/lib/demo-data";
+import { useCompanion } from "@/lib/companion/CompanionProvider";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
@@ -38,6 +39,11 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { t, locale, toggle } = useT();
   const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const {
+    status: companionStatus,
+    connect: connectCompanion,
+    disconnect: disconnectCompanion,
+  } = useCompanion();
 
   // Extract caseId from URL path: /cases/{caseId}/...
   const caseIdFromUrl = (() => {
@@ -205,6 +211,32 @@ export function AppSidebar() {
           title={t.langToggleTitle}
         >
           {locale === "de" ? "EN" : "DE"}
+        </button>
+        {/* AI Companion toggle */}
+        <button
+          onClick={() => {
+            if (companionStatus === "connected") {
+              disconnectCompanion();
+            } else if (companionStatus === "idle" || companionStatus === "error") {
+              connectCompanion();
+            }
+          }}
+          className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
+            companionStatus === "connected"
+              ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+              : companionStatus === "connecting"
+                ? "bg-yellow-500/20 text-yellow-400"
+                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+          }`}
+          title={
+            companionStatus === "connected"
+              ? "AI Companion Active"
+              : companionStatus === "connecting"
+                ? "Connecting..."
+                : "Activate AI Companion"
+          }
+        >
+          {companionStatus === "connected" ? "AI \u25CF" : companionStatus === "connecting" ? "AI \u2026" : "AI"}
         </button>
         {/* Collapse toggle */}
         <button
