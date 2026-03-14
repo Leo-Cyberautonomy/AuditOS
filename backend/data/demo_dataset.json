@@ -1,18 +1,18 @@
 {
   "company": {
     "name": "EuroTech Manufacturing GmbH",
-    "address": "Industriestraße 24, 80939 München",
+    "address": "Industriestraße 24, 80939 Munich, Germany",
     "nace_code": "C10.13",
-    "industry": "Food Processing",
-    "employees": 45,
-    "building_area_m2": 2800,
+    "industry": "Food Processing & Manufacturing",
+    "employees": 245,
+    "building_area_m2": 12400,
     "annual_turnover_eur": 4200000,
     "audit_year": 2025
   },
   "auditor": {
     "name": "Dr. Stefan Gruber",
     "e_control_id": "ISO-AUD-2025-0847",
-    "company": "International Energy Audit Services GmbH"
+    "company": "TÜV Energy Solutions"
   },
   "energy_data": [
     {"month": "Jan 25", "strom_kwh": 34200, "gas_kwh": 62400, "fernwaerme_kwh": null, "status": "confirmed"},

@@ -1,0 +1,138 @@
+{
+  "case_id": "CASE-002",
+  "domain": "food_safety",
+  "status": "analysis",
+  "notes": "Pacific Fresh Foods — FDA FSMA + HACCP food safety audit, San Francisco facilities",
+  "created_at": "2024-10-01T10:00:00Z",
+  "updated_at": "2024-12-05T16:00:00Z",
+  "measures_count": 3,
+  "company": {
+    "name": "Pacific Fresh Foods Inc.",
+    "address": "1200 Embarcadero Rd, San Francisco, CA 94107, USA",
+    "nace_code": "I56.10",
+    "industry": "Food Service & Restaurant Chain",
+    "employees": 180,
+    "building_area_m2": 3200,
+    "annual_turnover_eur": 12500000,
+    "audit_year": 2025
+  },
+  "auditor": {
+    "name": "Sarah Chen, CFS",
+    "e_control_id": "FSMA-AUD-2025-1234",
+    "company": "SafeFood Consultants LLC"
+  },
+  "documents": [
+    {"id": "doc-002-01", "filename": "HACCP_Plan_Central_Kitchen.pdf", "file_size": 520000, "mime_type": "application/pdf", "category": "other", "category_confidence": 93, "status": "extracted", "extracted_fields_count": 48, "uploaded_at": "2024-10-05T09:00:00Z"},
+    {"id": "doc-002-02", "filename": "Temperature_Logs_Q3_2025.xlsx", "file_size": 180000, "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "category": "excel_data", "category_confidence": 91, "status": "extracted", "extracted_fields_count": 2160, "uploaded_at": "2024-10-05T09:10:00Z"},
+    {"id": "doc-002-03", "filename": "Supplier_COA_Certificates.pdf", "file_size": 890000, "mime_type": "application/pdf", "category": "other", "category_confidence": 85, "status": "extracted", "extracted_fields_count": 36, "uploaded_at": "2024-10-06T11:00:00Z"},
+    {"id": "doc-002-04", "filename": "Pest_Control_Report_2025.pdf", "file_size": 320000, "mime_type": "application/pdf", "category": "measurement_protocol", "category_confidence": 82, "status": "extracted", "extracted_fields_count": 18, "uploaded_at": "2024-10-08T14:00:00Z"},
+    {"id": "doc-002-05", "filename": "Cleaning_SOP_Kitchen_Stations.pdf", "file_size": 245000, "mime_type": "application/pdf", "category": "other", "category_confidence": 78, "status": "extracted", "extracted_fields_count": 24, "uploaded_at": "2024-10-10T10:00:00Z"},
+    {"id": "doc-002-06", "filename": "Cold_Storage_Layout.pdf", "file_size": 1500000, "mime_type": "application/pdf", "category": "floor_plan", "category_confidence": 90, "status": "extracted", "extracted_fields_count": 8, "uploaded_at": "2024-10-10T10:30:00Z"}
+  ],
+  "ledger_entries": [
+    {"id": "le-002-01", "month": "Jan 25", "carrier": "strom", "value_kwh": 18500, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 92, "review_status": "approved"},
+    {"id": "le-002-02", "month": "Feb 25", "carrier": "strom", "value_kwh": 17800, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 92, "review_status": "approved"},
+    {"id": "le-002-03", "month": "Mar 25", "carrier": "strom", "value_kwh": 19200, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 91, "review_status": "approved"},
+    {"id": "le-002-04", "month": "Apr 25", "carrier": "strom", "value_kwh": 20100, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-002-05", "month": "May 25", "carrier": "strom", "value_kwh": 22400, "status": "anomaly", "note": "Walk-in cooler compressor running continuously — potential door seal failure", "source_doc_id": "doc-002-02", "confidence": 88, "review_status": "pending"},
+    {"id": "le-002-06", "month": "Jun 25", "carrier": "strom", "value_kwh": 21800, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-002-07", "month": "Jul 25", "carrier": "strom", "value_kwh": 23100, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 90, "review_status": "pending"},
+    {"id": "le-002-08", "month": "Aug 25", "carrier": "strom", "value_kwh": 22600, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 90, "review_status": "pending"},
+    {"id": "le-002-09", "month": "Sep 25", "carrier": "strom", "value_kwh": 20900, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-002-10", "month": "Oct 25", "carrier": "strom", "value_kwh": null, "status": "missing", "note": "October utility bill not yet received from PG&E", "source_doc_id": null, "confidence": 0, "review_status": "pending"},
+    {"id": "le-002-11", "month": "Nov 25", "carrier": "strom", "value_kwh": 19400, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-002-12", "month": "Dec 25", "carrier": "strom", "value_kwh": 18900, "status": "estimated", "note": "Estimated based on prior year December consumption", "source_doc_id": null, "confidence": 65, "review_status": "pending"},
+    {"id": "le-002-13", "month": "Jan 25", "carrier": "gas", "value_kwh": 8200, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 90, "review_status": "approved"},
+    {"id": "le-002-14", "month": "Feb 25", "carrier": "gas", "value_kwh": 7600, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 90, "review_status": "approved"},
+    {"id": "le-002-15", "month": "Mar 25", "carrier": "gas", "value_kwh": 7100, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 89, "review_status": "pending"},
+    {"id": "le-002-16", "month": "Apr 25", "carrier": "gas", "value_kwh": 6800, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 89, "review_status": "pending"},
+    {"id": "le-002-17", "month": "May 25", "carrier": "gas", "value_kwh": 6500, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 88, "review_status": "pending"},
+    {"id": "le-002-18", "month": "Jun 25", "carrier": "gas", "value_kwh": 6200, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 88, "review_status": "pending"},
+    {"id": "le-002-19", "month": "Jul 25", "carrier": "gas", "value_kwh": 5900, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 88, "review_status": "pending"},
+    {"id": "le-002-20", "month": "Aug 25", "carrier": "gas", "value_kwh": 5800, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 87, "review_status": "pending"},
+    {"id": "le-002-21", "month": "Sep 25", "carrier": "gas", "value_kwh": 6100, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 88, "review_status": "pending"},
+    {"id": "le-002-22", "month": "Oct 25", "carrier": "gas", "value_kwh": null, "status": "missing", "note": "October utility bill not yet received", "source_doc_id": null, "confidence": 0, "review_status": "pending"},
+    {"id": "le-002-23", "month": "Nov 25", "carrier": "gas", "value_kwh": 7400, "status": "confirmed", "source_doc_id": "doc-002-02", "confidence": 89, "review_status": "pending"},
+    {"id": "le-002-24", "month": "Dec 25", "carrier": "gas", "value_kwh": 7900, "status": "estimated", "note": "Estimated from prior year pattern", "source_doc_id": null, "confidence": 62, "review_status": "pending"}
+  ],
+  "review_items": [
+    {"id": "rv-002-01", "category": "anomaly", "priority": "high", "title": "Walk-in cooler energy spike May 2025", "description": "22,400 kWh — 18% above average. Compressor running continuously suggests door seal failure or refrigerant leak.", "status": "pending", "related_entity_id": "le-002-05", "related_entity_type": "ledger_entry", "created_at": "2024-10-15T09:00:00Z"},
+    {"id": "rv-002-02", "category": "missing_data", "priority": "critical", "title": "October 2025: Utility bills pending from PG&E", "description": "Both electricity and gas bills for October not yet received. Follow up with utility provider.", "status": "pending", "related_entity_id": "le-002-10", "related_entity_type": "ledger_entry", "created_at": "2024-10-15T09:00:00Z"},
+    {"id": "rv-002-03", "category": "compliance_field", "priority": "critical", "title": "HACCP CCP monitoring: 3 stations missing temperature logs", "description": "Stations 4, 7, and 11 have gaps in continuous temperature monitoring for cold holding. FSMA 21 CFR 117 requires complete records.", "status": "pending", "created_at": "2024-10-20T14:00:00Z"},
+    {"id": "rv-002-04", "category": "compliance_field", "priority": "high", "title": "Allergen cross-contact preventive controls incomplete", "description": "Allergen control plan does not cover the new sushi prep station added in Q2 2025. SQF Code 2.4.4 requires update.", "status": "pending", "created_at": "2024-11-01T08:00:00Z"},
+    {"id": "rv-002-05", "category": "measure", "priority": "medium", "title": "Supplier verification: 4 of 18 COAs expired", "description": "Certificates of Analysis for suppliers #003, #008, #012, #016 expired. FSMA requires current supplier verification.", "status": "pending", "created_at": "2024-10-22T11:00:00Z"},
+    {"id": "rv-002-06", "category": "estimation", "priority": "low", "title": "December energy estimate low confidence", "description": "December values estimated from prior year. Confidence 62-65%. Actual bills needed before final report.", "status": "pending", "related_entity_id": "le-002-12", "related_entity_type": "ledger_entry", "created_at": "2024-10-16T10:00:00Z"}
+  ],
+  "audit_log": [
+    {"id": "al-002-01", "action": "case_created", "actor": "Sarah Chen, CFS", "detail": "Case CASE-002 created — food safety audit", "timestamp": "2024-10-01T10:00:00Z"},
+    {"id": "al-002-02", "action": "document_uploaded", "actor": "Sarah Chen, CFS", "entity_type": "document", "entity_id": "doc-002-01", "detail": "HACCP plan and temperature logs uploaded", "timestamp": "2024-10-05T09:00:00Z"},
+    {"id": "al-002-03", "action": "document_uploaded", "actor": "Sarah Chen, CFS", "entity_type": "document", "entity_id": "doc-002-03", "detail": "Supplier COA certificates uploaded", "timestamp": "2024-10-06T11:00:00Z"},
+    {"id": "al-002-04", "action": "extraction_completed", "actor": "system", "detail": "Extraction complete — 2,286 data points extracted", "timestamp": "2024-10-08T14:30:00Z"},
+    {"id": "al-002-05", "action": "case_status_changed", "actor": "system", "detail": "Status → Analysis", "timestamp": "2024-10-08T14:31:00Z"},
+    {"id": "al-002-06", "action": "review_item_created", "actor": "system", "detail": "6 review items generated", "timestamp": "2024-10-15T09:00:00Z"}
+  ],
+  "measures": [
+    {
+      "id": "m-002-01",
+      "measure_id": "M1",
+      "title": "Walk-in Cooler Door Seal Replacement + Smart Monitoring",
+      "description": "Replace deteriorated door gaskets on 3 walk-in coolers and install IoT temperature/door-open sensors for real-time HACCP compliance monitoring.",
+      "annual_saving_kwh": 14200,
+      "annual_saving_eur": 2840,
+      "investment_eur": 8500,
+      "payback_years": 3.0,
+      "priority": "high",
+      "evidence": {
+        "measurement": "Infrared thermography: door seals showing 8-12°F temperature differential at 6 locations",
+        "nameplate": "3x Kolpak P7-0810-CT walk-in coolers, 2HP Copeland compressors",
+        "method": "ASHRAE 90.1 infiltration calculation + compressor runtime analysis from smart meter data",
+        "price_basis": "$0.20/kWh (PG&E commercial TOU rate, 2025)",
+        "confidence": 85,
+        "confidence_note": "Thermal imaging confirmed, compressor runtime from utility meter — 24h sub-metering recommended"
+      },
+      "created_at": "2024-11-01T10:00:00Z",
+      "updated_at": "2024-11-01T10:00:00Z"
+    },
+    {
+      "id": "m-002-02",
+      "measure_id": "M2",
+      "title": "Automated CCP Temperature Monitoring System",
+      "description": "Deploy wireless temperature monitoring at all 14 Critical Control Points replacing manual log sheets. Includes automated alerts and FSMA-compliant record keeping.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 18500,
+      "investment_eur": 22000,
+      "payback_years": 1.2,
+      "priority": "very high",
+      "evidence": {
+        "measurement": "Current manual logging: 14 CCPs × 4 checks/day × 365 days = 20,440 manual entries/year, error rate 3.2%",
+        "method": "Labor savings: 2.5 FTE-hours/day × $28/hr × 365 = $25,550/year minus monitoring subscription $7,050/year",
+        "price_basis": "ComplianceMate Pro licensing: $7,050/year for 14 sensor nodes + cloud platform",
+        "confidence": 90,
+        "confidence_note": "Based on 3-month pilot data from Station 1; labor savings verified by shift manager time study"
+      },
+      "created_at": "2024-11-01T10:00:00Z",
+      "updated_at": "2024-11-01T10:00:00Z"
+    },
+    {
+      "id": "m-002-03",
+      "measure_id": "M3",
+      "title": "Commercial Dishwasher Heat Recovery Upgrade",
+      "description": "Install drain water heat recovery on two high-temperature commercial dishwashers to preheat incoming cold water, reducing gas consumption for water heating.",
+      "annual_saving_kwh": 28000,
+      "annual_saving_eur": 3360,
+      "investment_eur": 12000,
+      "payback_years": 3.6,
+      "priority": "medium",
+      "evidence": {
+        "measurement": "Drain temperature: 145°F measured with Fluke 51 II, flow rate: 2.8 GPM during wash cycles, ~8 hours/day",
+        "nameplate": "2x Hobart AM15 high-temp dishwashers, 72 racks/hr capacity, booster heater 70°F rise",
+        "method": "Heat recovery = 2.8 GPM × 8.34 lb/gal × 60°F ΔT × 60 min × 8 hr × 0.65 efficiency × 310 operating days",
+        "price_basis": "$0.12/kWh gas equivalent (PG&E G-NR1 rate, 2025)",
+        "confidence": 78,
+        "confidence_note": "Drain temperature measured, flow rate estimated from manufacturer specs — metered flow study recommended"
+      },
+      "created_at": "2024-11-01T10:00:00Z",
+      "updated_at": "2024-11-01T10:00:00Z"
+    }
+  ]
+}

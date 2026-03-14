@@ -1,0 +1,141 @@
+{
+  "case_id": "CASE-005",
+  "domain": "environmental",
+  "status": "intake",
+  "notes": "GreenPort Logistics — ISO 14001 + EU EIA Directive environmental audit, Rotterdam port facility",
+  "created_at": "2024-12-01T09:00:00Z",
+  "updated_at": "2024-12-15T16:00:00Z",
+  "measures_count": 3,
+  "company": {
+    "name": "GreenPort Logistics Ltd.",
+    "address": "Europaweg 200, 3199 LC Rotterdam, Netherlands",
+    "nace_code": "H52.10",
+    "industry": "Warehousing & Logistics",
+    "employees": 890,
+    "building_area_m2": 62000,
+    "annual_turnover_eur": 125000000,
+    "audit_year": 2025
+  },
+  "auditor": {
+    "name": "Anna van der Berg, MSc",
+    "e_control_id": "ISO14001-AUD-2025-0568",
+    "company": "EcoAudit Europe BV"
+  },
+  "documents": [
+    {"id": "doc-005-01", "filename": "ISO14001_EMS_Manual_v6.pdf", "file_size": 4200000, "mime_type": "application/pdf", "category": "other", "category_confidence": 91, "status": "extracted", "extracted_fields_count": 128, "uploaded_at": "2024-12-03T09:00:00Z"},
+    {"id": "doc-005-02", "filename": "Emissions_Inventory_2024.xlsx", "file_size": 680000, "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "category": "excel_data", "category_confidence": 94, "status": "extracted", "extracted_fields_count": 480, "uploaded_at": "2024-12-03T09:10:00Z"},
+    {"id": "doc-005-03", "filename": "Wastewater_Discharge_Permit.pdf", "file_size": 320000, "mime_type": "application/pdf", "category": "other", "category_confidence": 86, "status": "extracted", "extracted_fields_count": 24, "uploaded_at": "2024-12-05T11:00:00Z"},
+    {"id": "doc-005-04", "filename": "Noise_Impact_Assessment_Q3_2025.pdf", "file_size": 1800000, "mime_type": "application/pdf", "category": "measurement_protocol", "category_confidence": 88, "status": "extracted", "extracted_fields_count": 56, "uploaded_at": "2024-12-08T10:00:00Z"},
+    {"id": "doc-005-05", "filename": "Warehouse_Complex_Aerial.jpg", "file_size": 12000000, "mime_type": "image/jpeg", "category": "photo", "category_confidence": 72, "status": "extracted", "extracted_fields_count": 4, "uploaded_at": "2024-12-10T08:00:00Z"},
+    {"id": "doc-005-06", "filename": "Chemical_Storage_Inventory.xlsx", "file_size": 145000, "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "category": "equipment_list", "category_confidence": 83, "status": "extracted", "extracted_fields_count": 96, "uploaded_at": "2024-12-10T10:00:00Z"},
+    {"id": "doc-005-07", "filename": "Stormwater_Monitoring_2025.pdf", "file_size": 520000, "mime_type": "application/pdf", "category": "measurement_protocol", "category_confidence": 90, "status": "extracted", "extracted_fields_count": 72, "uploaded_at": "2024-12-12T09:00:00Z"},
+    {"id": "doc-005-08", "filename": "Scope3_Supply_Chain_Emissions.xlsx", "file_size": 890000, "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "category": "excel_data", "category_confidence": 87, "status": "extracted", "extracted_fields_count": 360, "uploaded_at": "2024-12-12T09:30:00Z"}
+  ],
+  "ledger_entries": [
+    {"id": "le-005-01", "month": "Jan 25", "carrier": "strom", "value_kwh": 380000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 94, "review_status": "pending"},
+    {"id": "le-005-02", "month": "Feb 25", "carrier": "strom", "value_kwh": 365000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 94, "review_status": "pending"},
+    {"id": "le-005-03", "month": "Mar 25", "carrier": "strom", "value_kwh": 372000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 93, "review_status": "pending"},
+    {"id": "le-005-04", "month": "Apr 25", "carrier": "strom", "value_kwh": 358000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 93, "review_status": "pending"},
+    {"id": "le-005-05", "month": "May 25", "carrier": "strom", "value_kwh": 345000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 92, "review_status": "pending"},
+    {"id": "le-005-06", "month": "Jun 25", "carrier": "strom", "value_kwh": 390000, "status": "anomaly", "note": "New cold storage facility H3 online mid-June — 45,000 kWh additional baseload", "source_doc_id": "doc-005-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-005-07", "month": "Jul 25", "carrier": "strom", "value_kwh": 405000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-005-08", "month": "Aug 25", "carrier": "strom", "value_kwh": 398000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-005-09", "month": "Sep 25", "carrier": "strom", "value_kwh": 375000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 92, "review_status": "pending"},
+    {"id": "le-005-10", "month": "Oct 25", "carrier": "strom", "value_kwh": 368000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 92, "review_status": "pending"},
+    {"id": "le-005-11", "month": "Nov 25", "carrier": "strom", "value_kwh": null, "status": "missing", "note": "November bill delayed — Eneco meter reading scheduled for Dec 20", "source_doc_id": null, "confidence": 0, "review_status": "pending"},
+    {"id": "le-005-12", "month": "Dec 25", "carrier": "strom", "value_kwh": null, "status": "missing", "note": "December data not yet available", "source_doc_id": null, "confidence": 0, "review_status": "pending"},
+    {"id": "le-005-13", "month": "Jan 25", "carrier": "gas", "value_kwh": 420000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 93, "review_status": "pending"},
+    {"id": "le-005-14", "month": "Feb 25", "carrier": "gas", "value_kwh": 395000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 93, "review_status": "pending"},
+    {"id": "le-005-15", "month": "Mar 25", "carrier": "gas", "value_kwh": 310000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 92, "review_status": "pending"},
+    {"id": "le-005-16", "month": "Apr 25", "carrier": "gas", "value_kwh": 185000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 92, "review_status": "pending"},
+    {"id": "le-005-17", "month": "May 25", "carrier": "gas", "value_kwh": 95000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-005-18", "month": "Jun 25", "carrier": "gas", "value_kwh": 52000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-005-19", "month": "Jul 25", "carrier": "gas", "value_kwh": 38000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 90, "review_status": "pending"},
+    {"id": "le-005-20", "month": "Aug 25", "carrier": "gas", "value_kwh": 42000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 90, "review_status": "pending"},
+    {"id": "le-005-21", "month": "Sep 25", "carrier": "gas", "value_kwh": 120000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 91, "review_status": "pending"},
+    {"id": "le-005-22", "month": "Oct 25", "carrier": "gas", "value_kwh": 280000, "status": "confirmed", "source_doc_id": "doc-005-02", "confidence": 92, "review_status": "pending"},
+    {"id": "le-005-23", "month": "Nov 25", "carrier": "gas", "value_kwh": null, "status": "missing", "note": "November bill delayed", "source_doc_id": null, "confidence": 0, "review_status": "pending"},
+    {"id": "le-005-24", "month": "Dec 25", "carrier": "gas", "value_kwh": null, "status": "missing", "note": "December data not yet available", "source_doc_id": null, "confidence": 0, "review_status": "pending"}
+  ],
+  "review_items": [
+    {"id": "rv-005-01", "category": "missing_data", "priority": "high", "title": "Nov-Dec 2025: Electricity and gas data pending", "description": "Last 2 months of energy data still outstanding. Eneco meter reading scheduled Dec 20. Required for complete Scope 1+2 calculations.", "status": "pending", "related_entity_id": "le-005-11", "related_entity_type": "ledger_entry", "created_at": "2024-12-10T14:00:00Z"},
+    {"id": "rv-005-02", "category": "compliance_field", "priority": "critical", "title": "EU EIA Directive: Environmental Impact Statement not filed for H3 expansion", "description": "New cold storage facility H3 (8,200 m2) became operational June 2025 without Environmental Impact Assessment filing required under EU Directive 2011/92/EU Annex II.", "status": "pending", "created_at": "2024-12-12T09:00:00Z"},
+    {"id": "rv-005-03", "category": "compliance_field", "priority": "critical", "title": "Stormwater discharge: zinc concentration exceeds permit limit", "description": "Q3 2025 stormwater monitoring shows zinc at 0.18 mg/L vs. permit limit 0.15 mg/L. Source suspected: galvanized roof panels on Warehouse 2.", "status": "pending", "related_entity_id": "doc-005-07", "related_entity_type": "document", "created_at": "2024-12-12T10:00:00Z"},
+    {"id": "rv-005-04", "category": "anomaly", "priority": "high", "title": "Scope 1 emissions increased 22% YoY due to fleet expansion", "description": "2025 Scope 1 emissions projected at 4,850 tCO2e vs. 2024 baseline 3,975 tCO2e. 22% increase driven by 15 additional diesel trucks added in Q2.", "status": "pending", "created_at": "2024-12-12T11:00:00Z"},
+    {"id": "rv-005-05", "category": "compliance_field", "priority": "high", "title": "ISO 14001 §8.1: Chemical storage non-conformity", "description": "Chemical inventory shows 3 incompatible chemical groups stored in same bund area (oxidizers + flammables). Violation of PGS 15 (Dutch hazardous substances storage guideline).", "status": "pending", "related_entity_id": "doc-005-06", "related_entity_type": "document", "created_at": "2024-12-13T09:00:00Z"},
+    {"id": "rv-005-06", "category": "measure", "priority": "medium", "title": "Noise monitoring: nighttime operations exceed 45 dB(A) at receptor R3", "description": "Q3 noise assessment shows 48 dB(A) Leq at nearest residential receptor vs. 45 dB(A) nighttime limit. Container handling operations 22:00-06:00 identified as source.", "status": "pending", "related_entity_id": "doc-005-04", "related_entity_type": "document", "created_at": "2024-12-13T10:00:00Z"},
+    {"id": "rv-005-07", "category": "estimation", "priority": "medium", "title": "Scope 3 emissions: supply chain data coverage only 62%", "description": "Scope 3 Category 4 (upstream transport) and Category 9 (downstream transport) emissions based on spend-based estimates for 38% of suppliers. Activity data needed.", "status": "pending", "related_entity_id": "doc-005-08", "related_entity_type": "document", "created_at": "2024-12-14T08:00:00Z"}
+  ],
+  "audit_log": [
+    {"id": "al-005-01", "action": "case_created", "actor": "Anna van der Berg, MSc", "detail": "Case CASE-005 created — environmental audit", "timestamp": "2024-12-01T09:00:00Z"},
+    {"id": "al-005-02", "action": "document_uploaded", "actor": "Anna van der Berg, MSc", "entity_type": "document", "entity_id": "doc-005-01", "detail": "EMS manual and emissions inventory uploaded", "timestamp": "2024-12-03T09:00:00Z"},
+    {"id": "al-005-03", "action": "document_uploaded", "actor": "Anna van der Berg, MSc", "entity_type": "document", "entity_id": "doc-005-03", "detail": "Wastewater and noise assessment uploaded", "timestamp": "2024-12-05T11:00:00Z"},
+    {"id": "al-005-04", "action": "extraction_completed", "actor": "system", "detail": "Extraction complete — 1,220 data points from 8 documents", "timestamp": "2024-12-12T10:00:00Z"},
+    {"id": "al-005-05", "action": "review_item_created", "actor": "system", "detail": "7 review items generated", "timestamp": "2024-12-12T14:00:00Z"}
+  ],
+  "measures": [
+    {
+      "id": "m-005-01",
+      "measure_id": "M1",
+      "title": "Stormwater Treatment — Bioretention + Zinc Source Control",
+      "description": "Install bioretention system at Warehouse 2 stormwater outfall to treat zinc-contaminated runoff from galvanized roofing. Replace 2,400 m2 of galvanized roofing panels with coated aluminum during scheduled roof maintenance.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 45000,
+      "investment_eur": 180000,
+      "payback_years": 4.0,
+      "priority": "very high",
+      "evidence": {
+        "measurement": "Stormwater sampling Q1-Q3 2025: zinc 0.14-0.18 mg/L (permit: 0.15 mg/L). Flow-weighted mean: 0.16 mg/L at outfall SW-03",
+        "nameplate": "Proposed: Rocla Stormfilter bioretention cells (3 units, 12 m3 total), ZPG media. Roof replacement: 2,400 m2 Kalzip 65/400 aluminum panels",
+        "method": "Bioretention zinc removal efficiency 75-85% (UNH Stormwater Center data). Cost avoidance: permit violation fines up to €50,000/incident + remediation costs. Roof lifecycle: aluminum adds 15 years vs. galvanized",
+        "price_basis": "Bioretention system: €85,000 installed (Rocla Netherlands). Roof replacement: €95,000 (material + labor during planned maintenance). Permit violation: €50,000/incident (Waterwet enforcement)",
+        "confidence": 82,
+        "confidence_note": "Stormwater data from 3 quarters of monitoring. Bioretention efficiency from peer-reviewed UNH data — site-specific performance may vary with rainfall intensity"
+      },
+      "created_at": "2024-12-15T10:00:00Z",
+      "updated_at": "2024-12-15T10:00:00Z"
+    },
+    {
+      "id": "m-005-02",
+      "measure_id": "M2",
+      "title": "Fleet Electrification — Phase 1 (8 Electric Trucks)",
+      "description": "Replace 8 oldest Euro V diesel trucks with DAF CF Electric 37t trucks for regional distribution (<200 km routes). Install 4 DC fast chargers (150 kW) at depot.",
+      "annual_saving_kwh": -320000,
+      "annual_saving_eur": 185000,
+      "investment_eur": 1850000,
+      "payback_years": 10.0,
+      "priority": "high",
+      "evidence": {
+        "measurement": "Fleet telemetry 2025: 8 target trucks avg 65,000 km/year, 32 L/100km diesel, total 166,400 L/year. CO2: 442 tCO2e/year (Scope 1)",
+        "nameplate": "Replacing: 8x DAF CF 340 Euro V (2016-2017). With: 8x DAF CF Electric 37t, 350 kWh battery, 200 km range. Chargers: 4x ABB Terra 184 (150 kW DC)",
+        "method": "Diesel cost: 166,400 L × €1.65/L = €274,560. Electric cost: 320,000 kWh × €0.18/kWh = €57,600. Maintenance saving: €32,000/year. Net: €185,000/year + 442 tCO2e Scope 1 reduction",
+        "price_basis": "Diesel: Shell fleet card €1.65/L (2025). Electricity: Eneco commercial €0.18/kWh. DAF CF Electric: €185,000/unit ex-works. ABB Terra 184: €65,000/unit installed",
+        "confidence": 75,
+        "confidence_note": "Route analysis shows 85% of selected trucks' routes are <180 km. Winter range reduction 15-20% may require occasional diesel backup. TCO assumes 8-year vehicle lifecycle"
+      },
+      "created_at": "2024-12-15T10:00:00Z",
+      "updated_at": "2024-12-15T10:00:00Z"
+    },
+    {
+      "id": "m-005-03",
+      "measure_id": "M3",
+      "title": "Nighttime Noise Mitigation — Container Handling Zone",
+      "description": "Install 4m noise barrier (acoustic fencing) along eastern boundary of container yard and retrofit rubber dampening pads on 6 reach stackers to reduce ground-borne vibration and impact noise during nighttime operations.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 28000,
+      "investment_eur": 95000,
+      "payback_years": 3.4,
+      "priority": "high",
+      "evidence": {
+        "measurement": "Noise monitoring Q3 2025 (Brüel & Kjær 2250): 48 dB(A) Leq at receptor R3 (22:00-06:00), 65 dB(A) LAmax during container stacking. Dominant source: reach stacker operations",
+        "nameplate": "Proposed: 180m × 4m Kokowall noise barrier (Rw 28 dB). 6x Kalmar DRF 450-65S reach stackers retrofitted with Trelleborg rubber dampening pads",
+        "method": "Acoustic modeling (SoundPLAN 9.0): barrier provides 8 dB insertion loss at R3, reducing to 40 dB(A). Rubber pads reduce LAmax by 6 dB. Compliance with Activiteitenbesluit nighttime limit 45 dB(A)",
+        "price_basis": "Kokowall barrier: €350/linear meter installed = €63,000. Trelleborg pads: €5,300/stacker × 6 = €31,800. Total: €94,800. Cost avoidance: enforcement order + operating restriction estimated at €28,000/year",
+        "confidence": 80,
+        "confidence_note": "Noise measurements by certified acoustician. SoundPLAN model validated against daytime measurements (±2 dB). Barrier effectiveness depends on weather conditions (wind direction)"
+      },
+      "created_at": "2024-12-15T10:00:00Z",
+      "updated_at": "2024-12-15T10:00:00Z"
+    }
+  ]
+}

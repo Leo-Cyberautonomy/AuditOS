@@ -1,10 +1,10 @@
 export const DEMO_COMPANY = {
   name: "EuroTech Manufacturing GmbH",
-  address: "Industriestraße 24, 80939 München",
+  address: "Industriestraße 24, 80939 Munich, Germany",
   nace_code: "C10.13",
-  industry: "Food Processing",
-  employees: 45,
-  building_area_m2: 2800,
+  industry: "Food Processing & Manufacturing",
+  employees: 245,
+  building_area_m2: 12400,
   annual_turnover_eur: 4200000,
   audit_year: 2025,
 };
@@ -12,8 +12,105 @@ export const DEMO_COMPANY = {
 export const DEMO_AUDITOR = {
   name: "Dr. Stefan Gruber",
   e_control_id: "ISO-AUD-2025-0847",
-  company: "International Energy Audit Services GmbH",
+  /** Alias for e_control_id — used in multi-domain contexts */
+  cert_id: "ISO-AUD-2025-0847",
+  company: "TÜV Energy Solutions",
 };
+
+// ── Internationalized demo cases across 5 domains and 5 countries ──────────
+
+export const DEMO_CASES = [
+  {
+    id: "CASE-001",
+    domain: "energy",
+    company: {
+      name: "EuroTech Manufacturing GmbH",
+      address: "Industriestraße 24, 80939 Munich, Germany",
+      nace_code: "C10.13",
+      industry: "Food Processing & Manufacturing",
+      employees: 245,
+      building_area_m2: 12400,
+    },
+    auditor: {
+      name: "Dr. Stefan Gruber",
+      cert_id: "ISO-AUD-2025-0847",
+      company: "TÜV Energy Solutions",
+    },
+    standards: ["ISO 50001", "EN 16247-1"],
+  },
+  {
+    id: "CASE-002",
+    domain: "food_safety",
+    company: {
+      name: "Pacific Fresh Foods Inc.",
+      address: "1200 Embarcadero Rd, San Francisco, CA 94107, USA",
+      nace_code: "I56.10",
+      industry: "Food Service & Restaurant Chain",
+      employees: 180,
+      building_area_m2: 3200,
+    },
+    auditor: {
+      name: "Sarah Chen, CFS",
+      cert_id: "FSMA-AUD-2025-1234",
+      company: "SafeFood Consultants LLC",
+    },
+    standards: ["FDA FSMA", "HACCP", "SQF"],
+  },
+  {
+    id: "CASE-003",
+    domain: "construction",
+    company: {
+      name: "Nordic Build AS",
+      address: "Bygdøy allé 45, 0265 Oslo, Norway",
+      nace_code: "F41.20",
+      industry: "Commercial Construction",
+      employees: 520,
+      building_area_m2: 45000,
+    },
+    auditor: {
+      name: "Erik Lindqvist, CSP",
+      cert_id: "ISO45001-AUD-2025-0391",
+      company: "Scandinavian Safety Group",
+    },
+    standards: ["ISO 45001", "Eurocodes"],
+  },
+  {
+    id: "CASE-004",
+    domain: "fire_safety",
+    company: {
+      name: "Sakura Hotel Group",
+      address: "2-4-1 Nihonbashi, Chuo-ku, Tokyo 103-0027, Japan",
+      nace_code: "I55.10",
+      industry: "Hospitality & Hotels",
+      employees: 340,
+      building_area_m2: 18500,
+    },
+    auditor: {
+      name: "Yuki Tanaka, PE",
+      cert_id: "NFPA-CFPS-2025-0712",
+      company: "Asia Fire Safety Consulting",
+    },
+    standards: ["NFPA 72", "ISO 7240"],
+  },
+  {
+    id: "CASE-005",
+    domain: "environmental",
+    company: {
+      name: "GreenPort Logistics Ltd.",
+      address: "Europaweg 200, 3199 LC Rotterdam, Netherlands",
+      nace_code: "H52.10",
+      industry: "Warehousing & Logistics",
+      employees: 890,
+      building_area_m2: 62000,
+    },
+    auditor: {
+      name: "Anna van der Berg, MSc",
+      cert_id: "ISO14001-AUD-2025-0568",
+      company: "EcoAudit Europe BV",
+    },
+    standards: ["ISO 14001", "EU EIA Directive"],
+  },
+];
 
 export type EnergyRowStatus = "confirmed" | "anomaly" | "estimated" | "missing";
 

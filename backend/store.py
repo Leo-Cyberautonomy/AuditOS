@@ -194,9 +194,11 @@ def init() -> None:
     live_findings.clear()
 
     seed_files = [
-        "case_food_manufacturing.json",
-        "case_metal_works.json",
-        "case_logistics.json",
+        "case_food_manufacturing.json",   # CASE-001: energy (Germany)
+        "case_food_safety.json",           # CASE-002: food_safety (USA)
+        "case_construction_safety.json",   # CASE-003: construction (Norway)
+        "case_fire_safety.json",           # CASE-004: fire_safety (Japan)
+        "case_environmental.json",         # CASE-005: environmental (Netherlands)
     ]
 
     for filename in seed_files:

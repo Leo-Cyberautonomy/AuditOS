@@ -1,0 +1,136 @@
+{
+  "case_id": "CASE-003",
+  "domain": "construction",
+  "status": "data_preparation",
+  "notes": "Nordic Build AS — ISO 45001 construction safety audit, Oslo commercial project site",
+  "created_at": "2024-11-01T08:00:00Z",
+  "updated_at": "2024-12-08T11:00:00Z",
+  "measures_count": 3,
+  "company": {
+    "name": "Nordic Build AS",
+    "address": "Bygdøy allé 45, 0265 Oslo, Norway",
+    "nace_code": "F41.20",
+    "industry": "Commercial Construction",
+    "employees": 520,
+    "building_area_m2": 45000,
+    "annual_turnover_eur": 85000000,
+    "audit_year": 2025
+  },
+  "auditor": {
+    "name": "Erik Lindqvist, CSP",
+    "e_control_id": "ISO45001-AUD-2025-0391",
+    "company": "Scandinavian Safety Group"
+  },
+  "documents": [
+    {"id": "doc-003-01", "filename": "ISO45001_OHS_Manual_v4.pdf", "file_size": 2800000, "mime_type": "application/pdf", "category": "other", "category_confidence": 88, "status": "extracted", "extracted_fields_count": 96, "uploaded_at": "2024-11-05T09:00:00Z"},
+    {"id": "doc-003-02", "filename": "Risk_Assessment_Site_Barcode_2025.xlsx", "file_size": 450000, "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "category": "excel_data", "category_confidence": 90, "status": "extracted", "extracted_fields_count": 240, "uploaded_at": "2024-11-05T09:10:00Z"},
+    {"id": "doc-003-03", "filename": "Incident_Reports_2024_2025.pdf", "file_size": 1200000, "mime_type": "application/pdf", "category": "other", "category_confidence": 86, "status": "extracted", "extracted_fields_count": 68, "uploaded_at": "2024-11-08T11:00:00Z"},
+    {"id": "doc-003-04", "filename": "Crane_Inspection_Certificates.pdf", "file_size": 680000, "mime_type": "application/pdf", "category": "other", "category_confidence": 84, "status": "extracted", "extracted_fields_count": 32, "uploaded_at": "2024-11-10T10:00:00Z"},
+    {"id": "doc-003-05", "filename": "Site_Layout_Phase3.pdf", "file_size": 5200000, "mime_type": "application/pdf", "category": "floor_plan", "category_confidence": 92, "status": "extracted", "extracted_fields_count": 12, "uploaded_at": "2024-11-12T08:00:00Z"}
+  ],
+  "ledger_entries": [
+    {"id": "le-003-01", "month": "Jan 25", "carrier": "strom", "value_kwh": 82000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 88, "review_status": "pending"},
+    {"id": "le-003-02", "month": "Feb 25", "carrier": "strom", "value_kwh": 78500, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 88, "review_status": "pending"},
+    {"id": "le-003-03", "month": "Mar 25", "carrier": "strom", "value_kwh": 91000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 87, "review_status": "pending"},
+    {"id": "le-003-04", "month": "Apr 25", "carrier": "strom", "value_kwh": 95000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 87, "review_status": "pending"},
+    {"id": "le-003-05", "month": "May 25", "carrier": "strom", "value_kwh": 102000, "status": "anomaly", "note": "Crane operations extended to night shift — temporary lighting at 40kW", "source_doc_id": "doc-003-02", "confidence": 85, "review_status": "pending"},
+    {"id": "le-003-06", "month": "Jun 25", "carrier": "strom", "value_kwh": 98000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 86, "review_status": "pending"},
+    {"id": "le-003-07", "month": "Jul 25", "carrier": "strom", "value_kwh": null, "status": "missing", "note": "Site meter reading unavailable — construction power rerouted during Phase 3", "confidence": 0, "review_status": "pending"},
+    {"id": "le-003-08", "month": "Aug 25", "carrier": "strom", "value_kwh": null, "status": "missing", "note": "Site meter reading unavailable — construction power rerouted", "confidence": 0, "review_status": "pending"},
+    {"id": "le-003-09", "month": "Sep 25", "carrier": "strom", "value_kwh": 88000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 87, "review_status": "pending"},
+    {"id": "le-003-10", "month": "Oct 25", "carrier": "strom", "value_kwh": 85000, "status": "estimated", "note": "Estimated from Phase 2 comparable period", "source_doc_id": null, "confidence": 58, "review_status": "pending"},
+    {"id": "le-003-11", "month": "Nov 25", "carrier": "strom", "value_kwh": 76000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 86, "review_status": "pending"},
+    {"id": "le-003-12", "month": "Dec 25", "carrier": "strom", "value_kwh": null, "status": "missing", "note": "December data not yet available", "confidence": 0, "review_status": "pending"},
+    {"id": "le-003-13", "month": "Jan 25", "carrier": "diesel", "value_kwh": 145000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 85, "review_status": "pending"},
+    {"id": "le-003-14", "month": "Feb 25", "carrier": "diesel", "value_kwh": 138000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 85, "review_status": "pending"},
+    {"id": "le-003-15", "month": "Mar 25", "carrier": "diesel", "value_kwh": 162000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 84, "review_status": "pending"},
+    {"id": "le-003-16", "month": "Apr 25", "carrier": "diesel", "value_kwh": 175000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 84, "review_status": "pending"},
+    {"id": "le-003-17", "month": "May 25", "carrier": "diesel", "value_kwh": 190000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 83, "review_status": "pending"},
+    {"id": "le-003-18", "month": "Jun 25", "carrier": "diesel", "value_kwh": 185000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 83, "review_status": "pending"},
+    {"id": "le-003-19", "month": "Jul 25", "carrier": "diesel", "value_kwh": null, "status": "missing", "note": "Fuel delivery records incomplete during Phase 3 transition", "confidence": 0, "review_status": "pending"},
+    {"id": "le-003-20", "month": "Aug 25", "carrier": "diesel", "value_kwh": 168000, "status": "estimated", "note": "Estimated from fuel delivery invoices — partial data", "source_doc_id": null, "confidence": 55, "review_status": "pending"},
+    {"id": "le-003-21", "month": "Sep 25", "carrier": "diesel", "value_kwh": 155000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 84, "review_status": "pending"},
+    {"id": "le-003-22", "month": "Oct 25", "carrier": "diesel", "value_kwh": 142000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 84, "review_status": "pending"},
+    {"id": "le-003-23", "month": "Nov 25", "carrier": "diesel", "value_kwh": 128000, "status": "confirmed", "source_doc_id": "doc-003-02", "confidence": 85, "review_status": "pending"},
+    {"id": "le-003-24", "month": "Dec 25", "carrier": "diesel", "value_kwh": null, "status": "missing", "note": "December data not yet available", "confidence": 0, "review_status": "pending"}
+  ],
+  "review_items": [
+    {"id": "rv-003-01", "category": "missing_data", "priority": "critical", "title": "Jul-Aug 2025: Site electricity data missing", "description": "Meter readings unavailable during Phase 3 power rerouting. Contact Hafslund Nett for temporary meter data.", "status": "pending", "related_entity_id": "le-003-07", "related_entity_type": "ledger_entry", "created_at": "2024-11-15T14:00:00Z"},
+    {"id": "rv-003-02", "category": "compliance_field", "priority": "critical", "title": "ISO 45001 §6.1.2: 12 high-risk activities missing risk assessments", "description": "Risk register shows 12 Category A activities without completed HIRA (Hazard Identification and Risk Assessment). Required before Phase 3 concrete pour.", "status": "pending", "created_at": "2024-11-18T09:00:00Z"},
+    {"id": "rv-003-03", "category": "anomaly", "priority": "high", "title": "Incident rate above sector benchmark", "description": "LTIR 3.2 vs. Norwegian construction sector average 2.1. 8 recordable incidents in 2025 — 5 involving scaffolding.", "status": "pending", "created_at": "2024-11-20T10:00:00Z"},
+    {"id": "rv-003-04", "category": "compliance_field", "priority": "high", "title": "Crane operator certifications: 2 of 8 expired", "description": "Operators K. Hansen and M. Berg have expired G11 crane certificates. Arbeidstilsynet requires current certification.", "status": "pending", "related_entity_id": "doc-003-04", "related_entity_type": "document", "created_at": "2024-11-22T11:00:00Z"},
+    {"id": "rv-003-05", "category": "measure", "priority": "medium", "title": "Fall protection compliance: harness inspection overdue", "description": "14 of 52 fall protection harnesses overdue for annual inspection per EN 365:2004.", "status": "pending", "created_at": "2024-11-25T09:00:00Z"}
+  ],
+  "audit_log": [
+    {"id": "al-003-01", "action": "case_created", "actor": "Erik Lindqvist, CSP", "detail": "Case CASE-003 created — construction safety audit", "timestamp": "2024-11-01T08:00:00Z"},
+    {"id": "al-003-02", "action": "document_uploaded", "actor": "Erik Lindqvist, CSP", "entity_type": "document", "entity_id": "doc-003-01", "detail": "OHS manual and risk assessments uploaded", "timestamp": "2024-11-05T09:00:00Z"},
+    {"id": "al-003-03", "action": "document_uploaded", "actor": "Erik Lindqvist, CSP", "entity_type": "document", "entity_id": "doc-003-03", "detail": "Incident reports uploaded", "timestamp": "2024-11-08T11:00:00Z"},
+    {"id": "al-003-04", "action": "extraction_completed", "actor": "system", "detail": "Extraction complete — 448 data points, safety records indexed", "timestamp": "2024-11-12T09:00:00Z"},
+    {"id": "al-003-05", "action": "review_item_created", "actor": "system", "detail": "5 review items generated", "timestamp": "2024-11-15T14:00:00Z"}
+  ],
+  "measures": [
+    {
+      "id": "m-003-01",
+      "measure_id": "M1",
+      "title": "Scaffolding Safety System Upgrade — Smart Guardrails",
+      "description": "Replace conventional tube-and-fitting scaffolding guardrails with modular system scaffolding (Layher Allround) with integrated toe boards and self-closing gates at all access points.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 145000,
+      "investment_eur": 280000,
+      "payback_years": 1.9,
+      "priority": "very high",
+      "evidence": {
+        "measurement": "Incident analysis: 5 of 8 recordable incidents in 2025 involved scaffolding — 3 falls from height, 2 struck-by falling objects",
+        "nameplate": "Current: mixed tube-and-fitting scaffolding. Proposed: Layher Allround 1.09m system, TÜV-certified to EN 12810/12811",
+        "method": "Cost avoidance: avg incident cost NOK 850,000 (insurance + lost time + investigation) × projected 1.7 prevented incidents/year = NOK 1,445,000",
+        "price_basis": "Insurance data 2023-2025, Arbeidstilsynet penalty schedule 2025",
+        "confidence": 76,
+        "confidence_note": "Incident reduction rate based on industry studies (SINTEF 2023) — site-specific conditions may vary"
+      },
+      "created_at": "2024-12-01T10:00:00Z",
+      "updated_at": "2024-12-01T10:00:00Z"
+    },
+    {
+      "id": "m-003-02",
+      "measure_id": "M2",
+      "title": "Real-time Worker Location and Hazard Zone Monitoring",
+      "description": "Deploy UWB (ultra-wideband) positioning system to track worker locations relative to active crane zones, excavation edges, and other dynamic hazards. Automatic alerts when workers enter exclusion zones.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 92000,
+      "investment_eur": 185000,
+      "payback_years": 2.0,
+      "priority": "high",
+      "evidence": {
+        "measurement": "Near-miss log 2025: 23 unauthorized entries into active crane swing radius, 8 proximity events near excavation edges",
+        "nameplate": "Proposed: Trimble CrewSight 520 tags (60 units), 12 UWB anchors, Tekla integration for BIM-based zone definitions",
+        "method": "Projected reduction in crane-related incidents: 65% (based on Skanska pilot study SE-2024). Cost avoidance + productivity gain from reduced crane downtime for zone violations",
+        "price_basis": "System lease NOK 185,000/year incl. maintenance. Crane downtime cost: NOK 4,200/hour",
+        "confidence": 72,
+        "confidence_note": "Technology proven in Scandinavian pilots — site topology (multi-building) adds complexity to UWB coverage"
+      },
+      "created_at": "2024-12-01T10:00:00Z",
+      "updated_at": "2024-12-01T10:00:00Z"
+    },
+    {
+      "id": "m-003-03",
+      "measure_id": "M3",
+      "title": "Diesel-to-Electric Equipment Transition — Phase 3",
+      "description": "Replace 4 diesel-powered site equipment units with electric alternatives: 2 mini excavators (Volvo ECR25 Electric), 1 wheel loader (Kramer 5065e), and 1 aerial work platform (JLG EC520AJ).",
+      "annual_saving_kwh": -52000,
+      "annual_saving_eur": 38000,
+      "investment_eur": 420000,
+      "payback_years": 11.1,
+      "priority": "medium",
+      "evidence": {
+        "measurement": "Fuel consumption log: 4 diesel units consuming 14,200 L/year combined (diesel) vs. estimated 52,000 kWh/year (electric)",
+        "nameplate": "Replacing: CAT 302.7 (2x), Volvo L25 (1x), JLG 520AJ (1x). With: Volvo ECR25 Electric (2x), Kramer 5065e (1x), JLG EC520AJ (1x)",
+        "method": "Diesel cost: 14,200 L × NOK 18.50/L = NOK 262,700. Electric cost: 52,000 kWh × NOK 1.20/kWh = NOK 62,400. Net saving: NOK 200,300 fuel + NOK 180,000 reduced maintenance over 5 years",
+        "price_basis": "Diesel: Circle K fleet rate NOK 18.50/L (2025). Electricity: Hafslund site connection NOK 1.20/kWh incl. demand charges",
+        "confidence": 68,
+        "confidence_note": "Electric equipment performance in Norwegian winter conditions (-15°C) may reduce battery range 20-30% — winter pilot recommended"
+      },
+      "created_at": "2024-12-01T10:00:00Z",
+      "updated_at": "2024-12-01T10:00:00Z"
+    }
+  ]
+}

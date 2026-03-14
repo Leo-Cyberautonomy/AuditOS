@@ -1,0 +1,165 @@
+{
+  "case_id": "CASE-004",
+  "domain": "fire_safety",
+  "status": "report_draft",
+  "notes": "Sakura Hotel Group — NFPA 72 + ISO 7240 fire safety audit, Nihonbashi flagship property",
+  "created_at": "2024-08-20T06:00:00Z",
+  "updated_at": "2024-12-12T09:00:00Z",
+  "measures_count": 4,
+  "company": {
+    "name": "Sakura Hotel Group",
+    "address": "2-4-1 Nihonbashi, Chuo-ku, Tokyo 103-0027, Japan",
+    "nace_code": "I55.10",
+    "industry": "Hospitality & Hotels",
+    "employees": 340,
+    "building_area_m2": 18500,
+    "annual_turnover_eur": 42000000,
+    "audit_year": 2025
+  },
+  "auditor": {
+    "name": "Yuki Tanaka, PE",
+    "e_control_id": "NFPA-CFPS-2025-0712",
+    "company": "Asia Fire Safety Consulting"
+  },
+  "documents": [
+    {"id": "doc-004-01", "filename": "Fire_Alarm_System_AsBuilt.pdf", "file_size": 3400000, "mime_type": "application/pdf", "category": "floor_plan", "category_confidence": 90, "status": "extracted", "extracted_fields_count": 156, "uploaded_at": "2024-08-25T09:00:00Z"},
+    {"id": "doc-004-02", "filename": "Sprinkler_Inspection_Report_2025.pdf", "file_size": 890000, "mime_type": "application/pdf", "category": "measurement_protocol", "category_confidence": 92, "status": "extracted", "extracted_fields_count": 84, "uploaded_at": "2024-08-25T09:10:00Z"},
+    {"id": "doc-004-03", "filename": "Emergency_Evacuation_Plan_v3.pdf", "file_size": 2200000, "mime_type": "application/pdf", "category": "floor_plan", "category_confidence": 88, "status": "extracted", "extracted_fields_count": 42, "uploaded_at": "2024-08-28T11:00:00Z"},
+    {"id": "doc-004-04", "filename": "Fire_Door_Inspection_Log.xlsx", "file_size": 125000, "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "category": "excel_data", "category_confidence": 85, "status": "extracted", "extracted_fields_count": 312, "uploaded_at": "2024-09-02T10:00:00Z"},
+    {"id": "doc-004-05", "filename": "Kitchen_Hood_Suppression_Test.pdf", "file_size": 450000, "mime_type": "application/pdf", "category": "measurement_protocol", "category_confidence": 87, "status": "extracted", "extracted_fields_count": 28, "uploaded_at": "2024-09-05T08:00:00Z"},
+    {"id": "doc-004-06", "filename": "Annual_Fire_Drill_Report_2025.pdf", "file_size": 680000, "mime_type": "application/pdf", "category": "other", "category_confidence": 82, "status": "extracted", "extracted_fields_count": 36, "uploaded_at": "2024-09-08T09:30:00Z"},
+    {"id": "doc-004-07", "filename": "Electrical_Panel_Photos_B1_B2.jpg", "file_size": 8500000, "mime_type": "image/jpeg", "category": "photo", "category_confidence": 75, "status": "extracted", "extracted_fields_count": 6, "uploaded_at": "2024-09-10T11:00:00Z"}
+  ],
+  "ledger_entries": [
+    {"id": "le-004-01", "month": "Jan 25", "carrier": "strom", "value_kwh": 142000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 93, "review_status": "approved"},
+    {"id": "le-004-02", "month": "Feb 25", "carrier": "strom", "value_kwh": 138000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 93, "review_status": "approved"},
+    {"id": "le-004-03", "month": "Mar 25", "carrier": "strom", "value_kwh": 135000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 92, "review_status": "approved"},
+    {"id": "le-004-04", "month": "Apr 25", "carrier": "strom", "value_kwh": 128000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 92, "review_status": "approved"},
+    {"id": "le-004-05", "month": "May 25", "carrier": "strom", "value_kwh": 145000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 91, "review_status": "approved"},
+    {"id": "le-004-06", "month": "Jun 25", "carrier": "strom", "value_kwh": 168000, "status": "anomaly", "note": "Peak summer occupancy + emergency generator testing cycle — HVAC at full load", "source_doc_id": "doc-004-01", "confidence": 90, "review_status": "pending"},
+    {"id": "le-004-07", "month": "Jul 25", "carrier": "strom", "value_kwh": 172000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 91, "review_status": "approved"},
+    {"id": "le-004-08", "month": "Aug 25", "carrier": "strom", "value_kwh": 175000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 91, "review_status": "approved"},
+    {"id": "le-004-09", "month": "Sep 25", "carrier": "strom", "value_kwh": 155000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 92, "review_status": "approved"},
+    {"id": "le-004-10", "month": "Oct 25", "carrier": "strom", "value_kwh": 140000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 92, "review_status": "approved"},
+    {"id": "le-004-11", "month": "Nov 25", "carrier": "strom", "value_kwh": 136000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 93, "review_status": "approved"},
+    {"id": "le-004-12", "month": "Dec 25", "carrier": "strom", "value_kwh": 141000, "status": "estimated", "note": "December value estimated from booking forecast and prior year pattern", "source_doc_id": null, "confidence": 70, "review_status": "pending"},
+    {"id": "le-004-13", "month": "Jan 25", "carrier": "gas", "value_kwh": 85000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 91, "review_status": "approved"},
+    {"id": "le-004-14", "month": "Feb 25", "carrier": "gas", "value_kwh": 78000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 91, "review_status": "approved"},
+    {"id": "le-004-15", "month": "Mar 25", "carrier": "gas", "value_kwh": 62000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 90, "review_status": "approved"},
+    {"id": "le-004-16", "month": "Apr 25", "carrier": "gas", "value_kwh": 35000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 90, "review_status": "approved"},
+    {"id": "le-004-17", "month": "May 25", "carrier": "gas", "value_kwh": 22000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 89, "review_status": "approved"},
+    {"id": "le-004-18", "month": "Jun 25", "carrier": "gas", "value_kwh": 18000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 89, "review_status": "approved"},
+    {"id": "le-004-19", "month": "Jul 25", "carrier": "gas", "value_kwh": 15000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 89, "review_status": "approved"},
+    {"id": "le-004-20", "month": "Aug 25", "carrier": "gas", "value_kwh": 16000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 89, "review_status": "approved"},
+    {"id": "le-004-21", "month": "Sep 25", "carrier": "gas", "value_kwh": 28000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 90, "review_status": "approved"},
+    {"id": "le-004-22", "month": "Oct 25", "carrier": "gas", "value_kwh": 52000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 90, "review_status": "approved"},
+    {"id": "le-004-23", "month": "Nov 25", "carrier": "gas", "value_kwh": 72000, "status": "confirmed", "source_doc_id": "doc-004-01", "confidence": 91, "review_status": "approved"},
+    {"id": "le-004-24", "month": "Dec 25", "carrier": "gas", "value_kwh": 82000, "status": "estimated", "note": "Estimated from weather forecast and occupancy projection", "source_doc_id": null, "confidence": 68, "review_status": "pending"}
+  ],
+  "review_items": [
+    {"id": "rv-004-01", "category": "compliance_field", "priority": "critical", "title": "NFPA 72 §14.4: 18 smoke detectors past replacement date", "description": "18 ionization smoke detectors in floors B1-3 installed 2014, exceeding 10-year replacement requirement per NFPA 72-2022 §14.4.5.3.", "status": "pending", "created_at": "2024-09-15T09:00:00Z"},
+    {"id": "rv-004-02", "category": "compliance_field", "priority": "critical", "title": "Fire door inspection: 8 doors with failed self-closing mechanisms", "description": "Fire door inspection log shows 8 of 156 rated fire doors (5.1%) fail to self-close completely. Japanese Building Standards Law Art.27 requires 100% compliance.", "status": "pending", "related_entity_id": "doc-004-04", "related_entity_type": "document", "created_at": "2024-09-15T09:00:00Z"},
+    {"id": "rv-004-03", "category": "anomaly", "priority": "high", "title": "Emergency lighting: 12 units below minimum lux level", "description": "Annual test shows 12 of 245 emergency lighting units producing <1 lux at floor level (minimum: 1 lux per ISO 7240-1). Battery degradation suspected.", "status": "pending", "created_at": "2024-09-18T10:00:00Z"},
+    {"id": "rv-004-04", "category": "compliance_field", "priority": "high", "title": "Kitchen hood suppression system: nozzle alignment off-spec", "description": "Semi-annual test of Ansul R-102 system in main kitchen shows 2 of 8 nozzles misaligned after ductwork modification. NFPA 96 §12.1 violation.", "status": "pending", "related_entity_id": "doc-004-05", "related_entity_type": "document", "created_at": "2024-09-20T11:00:00Z"},
+    {"id": "rv-004-05", "category": "measure", "priority": "medium", "title": "Evacuation time exceeds target: Floor 12-15 at 6.2 min vs 4 min target", "description": "Annual drill showed upper floors (12-15) evacuation time 6.2 minutes, exceeding 4-minute design target. Stairwell B congestion identified.", "status": "pending", "related_entity_id": "doc-004-06", "related_entity_type": "document", "created_at": "2024-09-22T14:00:00Z"},
+    {"id": "rv-004-06", "category": "estimation", "priority": "low", "title": "December energy values estimated", "description": "Both electricity and gas December values projected. Confidence 68-70%. Final bills needed for report.", "status": "pending", "related_entity_id": "le-004-12", "related_entity_type": "ledger_entry", "created_at": "2024-09-25T08:00:00Z"},
+    {"id": "rv-004-07", "category": "anomaly", "priority": "medium", "title": "June-August electricity spike correlates with HVAC overload", "description": "Summer peak 168,000-175,000 kWh vs. shoulder season 128,000-140,000 kWh. HVAC system age (2008) may indicate efficiency degradation.", "status": "approved", "reviewer_note": "Expected seasonal pattern for Tokyo hotel. HVAC efficiency assessment scheduled for Q1 2026.", "created_at": "2024-09-28T10:00:00Z", "resolved_at": "2024-10-05T14:00:00Z"}
+  ],
+  "audit_log": [
+    {"id": "al-004-01", "action": "case_created", "actor": "Yuki Tanaka, PE", "detail": "Case CASE-004 created — fire safety audit", "timestamp": "2024-08-20T06:00:00Z"},
+    {"id": "al-004-02", "action": "document_uploaded", "actor": "Yuki Tanaka, PE", "entity_type": "document", "entity_id": "doc-004-01", "detail": "Fire alarm as-built drawings and sprinkler reports uploaded", "timestamp": "2024-08-25T09:00:00Z"},
+    {"id": "al-004-03", "action": "document_uploaded", "actor": "Yuki Tanaka, PE", "entity_type": "document", "entity_id": "doc-004-03", "detail": "Evacuation plan and fire door logs uploaded", "timestamp": "2024-08-28T11:00:00Z"},
+    {"id": "al-004-04", "action": "extraction_completed", "actor": "system", "detail": "Extraction complete — 664 data points, fire safety systems indexed", "timestamp": "2024-09-10T12:00:00Z"},
+    {"id": "al-004-05", "action": "case_status_changed", "actor": "system", "detail": "Status → Analysis", "timestamp": "2024-09-10T12:01:00Z"},
+    {"id": "al-004-06", "action": "review_item_created", "actor": "system", "detail": "7 review items generated", "timestamp": "2024-09-15T09:00:00Z"},
+    {"id": "al-004-07", "action": "review_approved", "actor": "Yuki Tanaka, PE", "entity_type": "review_item", "entity_id": "rv-004-07", "detail": "Summer HVAC pattern confirmed as seasonal", "timestamp": "2024-10-05T14:00:00Z"},
+    {"id": "al-004-08", "action": "report_generated", "actor": "system", "detail": "NFPA 72 / ISO 7240 fire safety report draft generated", "timestamp": "2024-11-15T10:00:00Z"},
+    {"id": "al-004-09", "action": "case_status_changed", "actor": "Yuki Tanaka, PE", "detail": "Status → Report Draft", "timestamp": "2024-12-12T09:00:00Z"}
+  ],
+  "measures": [
+    {
+      "id": "m-004-01",
+      "measure_id": "M1",
+      "title": "Smoke Detector Replacement — Floors B1-3 (18 units)",
+      "description": "Replace 18 aging ionization smoke detectors with addressable multi-sensor detectors (combined optical + heat) per NFPA 72-2022 §14.4.5.3 10-year replacement requirement.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 0,
+      "investment_eur": 14400,
+      "payback_years": 0,
+      "priority": "very high",
+      "evidence": {
+        "measurement": "Detector installation dates from maintenance database: all 18 units installed 2014-03, age = 11 years (exceeds 10-year limit)",
+        "nameplate": "Replacing: 18x Hochiki SLR-835B ionization. Installing: 18x Hochiki ALN-EN multi-sensor, addressable, EN 54-7/54-5",
+        "method": "Mandatory compliance — no financial payback calculation applicable. Non-compliance penalty: license suspension risk per Japanese Fire Service Act Art.17",
+        "price_basis": "Hochiki ALN-EN: ¥65,000/unit installed (incl. panel programming). 18 units = ¥1,170,000 (€7,200). Additional commissioning + testing: ¥1,170,000 (€7,200)",
+        "confidence": 98,
+        "confidence_note": "Mandatory replacement — installation dates verified from maintenance records and Hochiki serial number database"
+      },
+      "created_at": "2024-10-15T10:00:00Z",
+      "updated_at": "2024-10-15T10:00:00Z"
+    },
+    {
+      "id": "m-004-02",
+      "measure_id": "M2",
+      "title": "Fire Door Self-Closer Repair and Upgrade (8 doors)",
+      "description": "Replace failed door closers on 8 fire-rated doors and install electromagnetic hold-open devices connected to the fire alarm panel for 12 high-traffic corridor doors.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 8500,
+      "investment_eur": 12800,
+      "payback_years": 1.5,
+      "priority": "very high",
+      "evidence": {
+        "measurement": "Fire door inspection log: 8 doors fail self-close test (EN 1154 force measurement: 4 doors <8N, 4 doors with broken arm linkage)",
+        "nameplate": "8x Dorma TS 93 closers (replacing GEZE TS 2000 NV from 2010). 12x Dorma EM hold-open devices + interface modules to Hochiki FIREnet panel",
+        "method": "Cost avoidance: fire insurance premium reduction ¥1,300,000/year (confirmed by Tokio Marine underwriter) for full door compliance",
+        "price_basis": "Dorma TS 93: ¥42,000/door installed. EM hold-open: ¥68,000/door installed. Total ¥1,320,000 = €12,800",
+        "confidence": 92,
+        "confidence_note": "Door inventory 100% inspected. Insurance premium reduction confirmed in writing by underwriter."
+      },
+      "created_at": "2024-10-15T10:00:00Z",
+      "updated_at": "2024-10-15T10:00:00Z"
+    },
+    {
+      "id": "m-004-03",
+      "measure_id": "M3",
+      "title": "Emergency Lighting Battery Replacement Program",
+      "description": "Replace NiCd batteries in 12 failed emergency lighting units and transition entire property (245 units) to LED emergency luminaires with LiFePO4 batteries over 3-year cycle.",
+      "annual_saving_kwh": 8200,
+      "annual_saving_eur": 2460,
+      "investment_eur": 45000,
+      "payback_years": 18.3,
+      "priority": "high",
+      "evidence": {
+        "measurement": "Annual emergency lighting test (EN 50172): 12 units <1 lux at floor level (min 1 lux required). Battery voltage test: 12 units below 85% rated capacity",
+        "nameplate": "Current: 245x fluorescent emergency luminaires with NiCd 3.6V 4Ah packs. Phase 1 (12 units): Toshiba LED-22012 with LiFePO4 3.2V 6Ah",
+        "method": "LED replacement saves 6W/unit × 245 units × 8,760h standby trickle charge = 8,200 kWh/year. At ¥30/kWh = ¥246,000/year (€2,460)",
+        "price_basis": "TEPCO commercial rate: ¥30/kWh (2025). Toshiba LED-22012: ¥55,000/unit. 3-year program: Year 1 ¥660,000 + Year 2 ¥2,200,000 + Year 3 ¥1,640,000",
+        "confidence": 85,
+        "confidence_note": "12 failed units verified by lux measurement. 3-year rollout cost and savings based on manufacturer lifecycle data"
+      },
+      "created_at": "2024-10-15T10:00:00Z",
+      "updated_at": "2024-10-15T10:00:00Z"
+    },
+    {
+      "id": "m-004-04",
+      "measure_id": "M4",
+      "title": "Stairwell B Evacuation Flow Improvement",
+      "description": "Widen Stairwell B landing at floors 12-13 (structural modification), add photoluminescent wayfinding strips per ISO 16069, and install voice evacuation speakers replacing bell alarms on upper floors.",
+      "annual_saving_kwh": 0,
+      "annual_saving_eur": 0,
+      "investment_eur": 185000,
+      "payback_years": 0,
+      "priority": "high",
+      "evidence": {
+        "measurement": "Evacuation drill data: Floor 12-15 clearance time 6.2 min (target: 4 min). Video analysis shows bottleneck at Stairwell B floor 12-13 landing (1.1m width vs. 1.4m Building Standards Law minimum for >200 occupants)",
+        "nameplate": "Structural: landing widening from 1.1m to 1.5m (reinforced concrete modification). Voice evacuation: 24x TOA F-2352C speakers + RM-300MF amplifier rack",
+        "method": "Engineering estimate: widening reduces peak flow density from 1.8 p/m/s to 1.2 p/m/s, projected clearance time reduction to 3.8 min (Pathfinder simulation model)",
+        "price_basis": "Structural modification: ¥12,000,000. Voice evacuation system: ¥7,000,000. Design + permitting: ¥350,000. Total: ¥19,350,000 (€185,000)",
+        "confidence": 70,
+        "confidence_note": "Structural feasibility confirmed by Taisei Corp preliminary assessment. Evacuation time improvement based on Pathfinder simulation — actual improvement depends on occupant behavior"
+      },
+      "created_at": "2024-10-15T10:00:00Z",
+      "updated_at": "2024-10-15T10:00:00Z"
+    }
+  ]
+}
