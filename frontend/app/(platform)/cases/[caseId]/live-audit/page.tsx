@@ -15,250 +15,59 @@ import {
   Wrench,
   ImageIcon,
 } from "lucide-react";
-import { LiveAuditSession, type LiveAuditCallbacks } from "@/lib/live-audit";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-interface TranscriptEntry {
-  role: "user" | "assistant";
-  text: string;
-  timestamp: Date;
-}
-
-interface Finding {
-  id: string;
-  type: "equipment" | "meter_reading" | "issue" | "evidence";
-  name: string;
-  data: Record<string, unknown>;
-  timestamp: Date;
-}
+import { useCompanion } from "@/lib/companion/CompanionProvider";
+import type { Finding } from "@/lib/companion/types";
 
 export default function LiveAuditPage() {
   const params = useParams();
   const caseId = params.caseId as string;
 
-  // State
-  const [status, setStatus] = useState<
-    "idle" | "connecting" | "connected" | "disconnected" | "error"
-  >("idle");
-  const [isMuted, setIsMuted] = useState(false);
+  const companion = useCompanion();
+  const {
+    status,
+    isMuted,
+    transcript,
+    findings,
+    connect,
+    disconnect,
+    sendText,
+    sendImage,
+    toggleMute,
+    setMode,
+  } = companion;
+
+  // Local camera state
   const [isCameraOn, setIsCameraOn] = useState(false);
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [findings, setFindings] = useState<Finding[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Refs
-  const sessionRef = useRef<LiveAuditSession | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
   const frameIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const playbackContextRef = useRef<AudioContext | null>(null);
-  const isMutedRef = useRef(isMuted);
-
-  // Keep muted ref in sync
-  useEffect(() => {
-    isMutedRef.current = isMuted;
-  }, [isMuted]);
 
   // Auto-scroll transcript
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount: stop camera and switch back to desk mode
   useEffect(() => {
     return () => {
-      stopSession();
+      stopCamera();
+      // Switch back to desk mode but keep companion connected
+      if (companion.status === "connected") {
+        companion.setMode("desk", caseId);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const addTranscript = useCallback(
-    (role: "user" | "assistant", text: string) => {
-      setTranscript((prev) => {
-        // Merge with last entry if same role (streaming text)
-        if (prev.length > 0 && prev[prev.length - 1].role === role) {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            text: updated[updated.length - 1].text + text,
-          };
-          return updated;
-        }
-        return [...prev, { role, text, timestamp: new Date() }];
-      });
-    },
-    []
-  );
-
-  const addFinding = useCallback(
-    (name: string, args: Record<string, unknown>) => {
-      const finding: Finding = {
-        id: crypto.randomUUID(),
-        type:
-          name === "record_equipment"
-            ? "equipment"
-            : name === "record_meter_reading"
-              ? "meter_reading"
-              : name === "flag_issue"
-                ? "issue"
-                : "evidence",
-        name: (args.name || args.title || args.description || name) as string,
-        data: args,
-        timestamp: new Date(),
-      };
-      setFindings((prev) => [...prev, finding]);
-    },
-    []
-  );
-
-  const playAudio = useCallback((audioData: ArrayBuffer) => {
-    try {
-      if (!playbackContextRef.current) {
-        playbackContextRef.current = new AudioContext({ sampleRate: 24000 });
-      }
-      const ctx = playbackContextRef.current;
-      // Gemini outputs PCM 16-bit 24kHz mono
-      const int16Array = new Int16Array(audioData);
-      const float32Array = new Float32Array(int16Array.length);
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
-      }
-      const audioBuffer = ctx.createBuffer(1, float32Array.length, 24000);
-      audioBuffer.copyToChannel(float32Array, 0);
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(ctx.destination);
-      source.start();
-    } catch (e) {
-      console.error("Audio playback error:", e);
-    }
-  }, []);
-
-  const startSession = async () => {
-    setError(null);
-    setStatus("connecting");
-
-    try {
-      // Create backend session first
-      const res = await fetch(`${API_BASE}/live/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ case_id: caseId }),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to create session");
-      }
-      const data = await res.json();
-      const newSessionId = data.id;
-      setSessionId(newSessionId);
-
-      // Set up audio/video capture
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-        video: { width: 640, height: 480, facingMode: "environment" },
-      });
-      streamRef.current = stream;
-
-      // Show camera preview
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsCameraOn(true);
-      }
-
-      // Create WebSocket session via backend (ADK-powered)
-      const callbacks: LiveAuditCallbacks = {
-        onTranscript: addTranscript,
-        onAudioOutput: playAudio,
-        onToolCall: addFinding,
-        onToolResult: () => {}, // Tool results are handled server-side by ADK
-        onTurnComplete: () => {},
-        onStatusChange: (s) => setStatus(s as typeof status),
-        onError: (e) => setError(e),
-      };
-
-      const liveSession = new LiveAuditSession(
-        API_BASE,
-        caseId,
-        newSessionId,
-        callbacks
-      );
-      sessionRef.current = liveSession;
-      await liveSession.connect();
-
-      // Start sending audio
-      const audioCtx = new AudioContext({ sampleRate: 16000 });
-      audioContextRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-
-      processor.onaudioprocess = (e) => {
-        if (isMutedRef.current || !liveSession.active) return;
-        const inputData = e.inputBuffer.getChannelData(0);
-        const int16Data = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          int16Data[i] = Math.max(
-            -32768,
-            Math.min(32767, inputData[i] * 32768)
-          );
-        }
-        liveSession.sendAudio(int16Data.buffer);
-      };
-
-      source.connect(processor);
-      processor.connect(audioCtx.destination);
-
-      // Start sending video frames every 2 seconds
-      const sendFrame = () => {
-        if (!videoRef.current || !liveSession.active) return;
-        const canvas = document.createElement("canvas");
-        canvas.width = 640;
-        canvas.height = 480;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        ctx.drawImage(videoRef.current, 0, 0, 640, 480);
-        canvas.toBlob(
-          (blob) => {
-            if (blob && liveSession.active) {
-              liveSession.sendImage(blob);
-            }
-          },
-          "image/jpeg",
-          0.7
-        );
-      };
-      frameIntervalRef.current = setInterval(sendFrame, 2000);
-    } catch (e) {
-      setError(String(e));
-      setStatus("error");
-    }
-  };
-
-  const stopSession = () => {
+  const stopCamera = useCallback(() => {
     // Stop frame sending
     if (frameIntervalRef.current) {
       clearInterval(frameIntervalRef.current);
       frameIntervalRef.current = null;
-    }
-
-    // Stop audio processing
-    if (processorRef.current) {
-      processorRef.current.disconnect();
-      processorRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
     }
 
     // Stop media stream
@@ -267,21 +76,71 @@ export default function LiveAuditPage() {
       streamRef.current = null;
     }
 
-    // Close playback context
-    if (playbackContextRef.current) {
-      playbackContextRef.current.close();
-      playbackContextRef.current = null;
+    setIsCameraOn(false);
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    // Request camera access (video only; audio is handled by CompanionProvider)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480, facingMode: "environment" },
+    });
+    streamRef.current = stream;
+
+    // Show camera preview
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      setIsCameraOn(true);
     }
 
-    // Disconnect WebSocket session
-    sessionRef.current?.disconnect();
-    sessionRef.current = null;
+    // Start sending video frames every 2 seconds
+    const sendFrame = () => {
+      if (!videoRef.current) return;
+      const canvas = document.createElement("canvas");
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(videoRef.current, 0, 0, 640, 480);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            sendImage(blob);
+          }
+        },
+        "image/jpeg",
+        0.7,
+      );
+    };
+    frameIntervalRef.current = setInterval(sendFrame, 2000);
+  }, [sendImage]);
 
-    setIsCameraOn(false);
-    setStatus("disconnected");
+  const startSession = async () => {
+    setError(null);
+
+    try {
+      // Connect companion if not already connected
+      if (status !== "connected") {
+        await connect();
+      }
+
+      // Switch to field mode
+      setMode("field", caseId);
+
+      // Start camera and frame capture
+      await startCamera();
+    } catch (e) {
+      setError(String(e));
+    }
   };
 
-  const toggleMute = () => setIsMuted(!isMuted);
+  const stopSession = () => {
+    stopCamera();
+
+    // Switch back to desk mode (companion stays connected for sidebar use)
+    if (status === "connected") {
+      setMode("desk", caseId);
+    }
+  };
 
   const captureSnapshot = () => {
     if (!videoRef.current) return;
@@ -293,17 +152,21 @@ export default function LiveAuditPage() {
     ctx.drawImage(videoRef.current, 0, 0, 640, 480);
     canvas.toBlob(
       (blob) => {
-        if (blob && sessionRef.current?.active) {
-          sessionRef.current.sendImage(blob);
-          addTranscript("user", "[Snapshot captured and sent for analysis]");
+        if (blob && status === "connected") {
+          sendImage(blob);
+          sendText("[Snapshot captured and sent for analysis]");
         }
       },
       "image/jpeg",
-      0.9
+      0.9,
     );
   };
 
+  // Derived: session is active when companion is connected AND camera is on
+  const isActive = status === "connected" && isCameraOn;
+
   const getStatusColor = () => {
+    if (isActive) return "#22C55E";
     switch (status) {
       case "connected":
         return "#22C55E";
@@ -317,15 +180,14 @@ export default function LiveAuditPage() {
   };
 
   const getStatusText = () => {
+    if (isActive) return "Live -- AI Listening";
     switch (status) {
       case "idle":
         return "Ready to start";
       case "connecting":
         return "Connecting to AI...";
       case "connected":
-        return "Live -- AI Listening";
-      case "disconnected":
-        return "Session ended";
+        return "Connected (camera off)";
       case "error":
         return "Connection error";
     }
@@ -345,6 +207,10 @@ export default function LiveAuditPage() {
         return <Radio size={16} className="text-gray-400" />;
     }
   };
+
+  // Determine whether the "Start" button should show
+  const canStart = !isActive;
+  const canStop = isActive;
 
   return (
     <div className="h-[calc(100vh-2rem)] flex flex-col gap-4 p-6">
@@ -367,12 +233,11 @@ export default function LiveAuditPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {status === "idle" ||
-          status === "disconnected" ||
-          status === "error" ? (
+          {canStart && !canStop ? (
             <button
               onClick={startSession}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
+              disabled={status === "connecting"}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
             >
               <Phone size={16} /> Start Live Audit
             </button>
@@ -410,7 +275,7 @@ export default function LiveAuditPage() {
                 <CameraOff size={48} className="text-gray-600" />
               </div>
             )}
-            {status === "connected" && (
+            {isActive && (
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-600/80 text-white text-[10px] font-bold">
                 <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 REC
@@ -422,7 +287,7 @@ export default function LiveAuditPage() {
           <div className="flex items-center justify-center gap-3">
             <button
               onClick={toggleMute}
-              disabled={status !== "connected"}
+              disabled={!isActive}
               className="p-3 rounded-full transition-colors disabled:opacity-30"
               style={{ backgroundColor: isMuted ? "#EF4444" : "#374151" }}
             >
@@ -434,7 +299,7 @@ export default function LiveAuditPage() {
             </button>
             <button
               onClick={captureSnapshot}
-              disabled={status !== "connected"}
+              disabled={!isActive}
               className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-30"
             >
               <Camera size={20} className="text-white" />
@@ -469,7 +334,7 @@ export default function LiveAuditPage() {
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {transcript.length === 0 && (
               <div className="flex items-center justify-center h-full text-gray-500 text-sm">
-                {status === "connected"
+                {isActive
                   ? "Start speaking to begin the audit..."
                   : "Start a live audit session to begin"}
               </div>
@@ -483,11 +348,17 @@ export default function LiveAuditPage() {
                   className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
                     entry.role === "user"
                       ? "bg-blue-600/20 text-blue-100 rounded-br-none"
-                      : "bg-gray-700/50 text-gray-200 rounded-bl-none"
+                      : entry.role === "system"
+                        ? "bg-gray-600/30 text-gray-400 rounded-bl-none italic"
+                        : "bg-gray-700/50 text-gray-200 rounded-bl-none"
                   }`}
                 >
                   <p className="text-[10px] font-semibold mb-0.5 opacity-60">
-                    {entry.role === "user" ? "You" : "AuditAI"}
+                    {entry.role === "user"
+                      ? "You"
+                      : entry.role === "system"
+                        ? "System"
+                        : "AuditAI"}
                   </p>
                   {entry.text}
                 </div>
@@ -502,11 +373,10 @@ export default function LiveAuditPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const input = e.currentTarget.querySelector(
-                  "input"
+                  "input",
                 ) as HTMLInputElement;
-                if (input.value.trim() && sessionRef.current?.active) {
-                  sessionRef.current.sendText(input.value.trim());
-                  addTranscript("user", input.value.trim());
+                if (input.value.trim() && status === "connected") {
+                  sendText(input.value.trim());
                   input.value = "";
                 }
               }}
@@ -542,7 +412,7 @@ export default function LiveAuditPage() {
                 AI will record findings here as you inspect...
               </div>
             )}
-            {findings.map((finding) => (
+            {findings.map((finding: Finding) => (
               <div
                 key={finding.id}
                 className="p-3 rounded-lg bg-gray-800/50 border border-gray-700/50"
