@@ -3,7 +3,7 @@
 from typing import Optional, Literal
 from pydantic import BaseModel
 
-MeasurePriority = Literal["sehr hoch", "hoch", "mittel", "niedrig"]
+MeasurePriority = Literal["very high", "high", "medium", "low", "sehr hoch", "hoch", "mittel", "niedrig"]
 
 class MeasureEvidence(BaseModel):
     measurement: str
