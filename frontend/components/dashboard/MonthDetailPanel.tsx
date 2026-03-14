@@ -19,6 +19,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; label: { de: str
 
 export function MonthDetailPanel({ row, allData, onClose }: MonthDetailPanelProps) {
   const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   // Calculate MoM change
   const dataSource = allData ?? DEMO_ENERGY_DATA;
@@ -31,7 +32,7 @@ export function MonthDetailPanel({ row, allData, onClose }: MonthDetailPanelProp
   // Cost estimates
   const costStrom = row.strom_kwh ? (row.strom_kwh * 0.18).toFixed(0) : null;
   const costGas = row.gas_kwh ? (row.gas_kwh * 0.085).toFixed(0) : null;
-  const totalCost = costStrom && costGas ? (parseFloat(costStrom) + parseFloat(costGas)).toLocaleString("de-AT") : "—";
+  const totalCost = costStrom && costGas ? (parseFloat(costStrom) + parseFloat(costGas)).toLocaleString(fmt) : "—";
 
   const statusInfo = STATUS_COLORS[row.status];
   const statusLabel = locale === "en" ? statusInfo.label.en : statusInfo.label.de;
@@ -86,11 +87,11 @@ export function MonthDetailPanel({ row, allData, onClose }: MonthDetailPanelProp
               <p className="text-xs font-semibold text-gray-600">{label}</p>
             </div>
             <p className="text-lg font-bold text-gray-900 tabular-nums">
-              {kwh ? kwh.toLocaleString("de-AT") : "—"} <span className="text-xs font-normal text-gray-400">kWh</span>
+              {kwh ? kwh.toLocaleString(fmt) : "—"} <span className="text-xs font-normal text-gray-400">kWh</span>
             </p>
             {cost && (
               <p className="text-xs text-gray-400 mt-0.5">
-                {t.dashboard.monthDetail.cost}: ~€{parseInt(cost).toLocaleString("de-AT")}
+                {t.dashboard.monthDetail.cost}: ~€{parseInt(cost).toLocaleString(fmt)}
               </p>
             )}
           </div>

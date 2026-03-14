@@ -47,7 +47,8 @@ export function ReviewItemCard({
   onAction,
   actionLoading,
 }: ReviewItemCardProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
   const [commentOpen, setCommentOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [activeAction, setActiveAction] = useState<
@@ -176,14 +177,14 @@ export function ReviewItemCard({
               className="text-[11px]"
               style={{ color: "#9CA3AF" }}
             >
-              {new Date(item.created_at).toLocaleDateString("de-AT")}
+              {new Date(item.created_at).toLocaleDateString(fmt)}
             </span>
             {item.resolved_at && (
               <span
                 className="text-[11px]"
                 style={{ color: "#9CA3AF" }}
               >
-                {new Date(item.resolved_at).toLocaleDateString("de-AT")}
+                {new Date(item.resolved_at).toLocaleDateString(fmt)}
               </span>
             )}
           </div>

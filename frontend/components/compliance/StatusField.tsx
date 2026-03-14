@@ -25,10 +25,10 @@ const STATUS_STYLES: Record<FieldStatus, { bg: string; border: string; text: str
   red:    { bg: "#FEF2F2", border: "#FCA5A5", text: "#991B1B", icon: XCircle },
 };
 
-function formatValue(value: string | number | null, unit?: string, measuresLabel = "Maßnahmen"): string {
+function formatValue(value: string | number | null, unit?: string, measuresLabel = "Measures", fmt = "en-US"): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "number") {
-    return value.toLocaleString("de-AT") + (unit ? ` ${unit}` : "");
+    return value.toLocaleString(fmt) + (unit ? ` ${unit}` : "");
   }
   if (Array.isArray(value)) {
     return `${(value as any[]).length} ${measuresLabel}`;
@@ -41,7 +41,8 @@ export function StatusField({
   reviewNote, isExpanded, onExpand, onConfirm,
   animationDelay = 0,
 }: StatusFieldProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
   const styles = STATUS_STYLES[status];
   const Icon = styles.icon;
   const isClickable = status === "yellow" && !!onExpand;
@@ -70,7 +71,7 @@ export function StatusField({
               animate={{ opacity: 1 }}
               transition={{ delay: animationDelay + 0.1 }}
             >
-              {formatValue(value, unit, t.measures.title)}
+              {formatValue(value, unit, t.measures.title, fmt)}
             </motion.p>
           </div>
           {status === "yellow" && (

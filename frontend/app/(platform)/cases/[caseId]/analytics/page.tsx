@@ -87,6 +87,7 @@ export default function AnalyticsPage() {
   const params = useParams<{ caseId: string }>();
   const caseId = params.caseId as string;
   const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("full");
   const [selectedCharts, setSelectedCharts] = useState<Set<ChartId>>(new Set(CHART_IDS));
@@ -241,7 +242,7 @@ export default function AnalyticsPage() {
     { title: t.dashboard.kpiEnergy, value: totalMWh, unit: t.dashboard.kpiUnit.energy, icon: Zap, color: "#3B82F6" },
     {
       title: t.dashboard.kpiCost,
-      value: `\u20AC${totalCost.toLocaleString("de-AT")}`,
+      value: `\u20AC${totalCost.toLocaleString(fmt)}`,
       unit: t.dashboard.kpiUnit.cost,
       icon: TrendingDown,
       color: "#D97706",

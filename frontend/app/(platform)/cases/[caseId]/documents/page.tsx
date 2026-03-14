@@ -60,7 +60,8 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function DocumentsPage() {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
   const params = useParams<{ caseId: string }>();
   const caseId = params.caseId as string;
 
@@ -505,7 +506,7 @@ export default function DocumentsPage() {
 
                           {/* Upload Date */}
                           <td className="px-4 py-3 text-sm" style={{ color: "#6B7280" }}>
-                            {new Date(doc.uploaded_at).toLocaleDateString("de-AT")}
+                            {new Date(doc.uploaded_at).toLocaleDateString(fmt)}
                           </td>
 
                           {/* Status */}

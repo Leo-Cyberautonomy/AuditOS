@@ -42,6 +42,7 @@ function deriveFilterMeta(data: EnergyRow[]) {
 
 export default function DashboardPage() {
   const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("full");
   const [selectedCharts, setSelectedCharts] = useState<Set<ChartId>>(new Set(CHART_IDS));
   const [selectedMonth, setSelectedMonth] = useState<EnergyRow | null>(null);
@@ -113,7 +114,7 @@ export default function DashboardPage() {
 
   const kpis = [
     { title: t.dashboard.kpiEnergy, value: totalMWh, unit: t.dashboard.kpiUnit.energy, icon: Zap, color: "#3B82F6" },
-    { title: t.dashboard.kpiCost, value: `€${totalCost.toLocaleString("de-AT")}`, unit: t.dashboard.kpiUnit.cost, icon: TrendingDown, color: "#D97706" },
+    { title: t.dashboard.kpiCost, value: `€${totalCost.toLocaleString(fmt)}`, unit: t.dashboard.kpiUnit.cost, icon: TrendingDown, color: "#D97706" },
     { title: t.dashboard.kpiCO2, value: totalCO2, unit: t.dashboard.kpiUnit.co2, icon: Leaf, color: "#22C55E" },
     { title: t.dashboard.kpiReadiness, value: `${sessionTotals.readiness_score}`, unit: t.dashboard.kpiUnit.readiness, icon: CheckCircle, color: "#8B5CF6" },
   ];

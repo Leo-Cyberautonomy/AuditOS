@@ -26,6 +26,7 @@ export default function ReportPage() {
 
   const router = useRouter();
   const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   useEffect(() => {
     const stored = loadMeasures();
@@ -206,7 +207,7 @@ export default function ReportPage() {
                   {streamDone && (
                     <p className="text-xs text-gray-400">
                       {t.report.totalSavings} <strong className="text-gray-700">
-                        €{measures.reduce((s, m) => s + m.annual_saving_eur, 0).toLocaleString("de-AT")}/Jahr
+                        €{measures.reduce((s, m) => s + m.annual_saving_eur, 0).toLocaleString(fmt)}{t.finding.perYear}
                       </strong>
                     </p>
                   )}

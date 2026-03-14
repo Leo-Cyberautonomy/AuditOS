@@ -33,7 +33,8 @@ const STAGE_ORDER: CaseStatus[] = [
 ];
 
 export default function OverviewPage() {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
   const params = useParams();
   const caseId = params.caseId as string;
 
@@ -162,16 +163,16 @@ export default function OverviewPage() {
               { label: t.cases.industry, value: caseData.company.industry },
               {
                 label: t.caseOverview.employees,
-                value: caseData.company.employees.toLocaleString("de-AT"),
+                value: caseData.company.employees.toLocaleString(fmt),
               },
               {
                 label: t.caseOverview.buildingArea,
-                value: `${caseData.company.building_area_m2.toLocaleString("de-AT")} m\u00B2`,
+                value: `${caseData.company.building_area_m2.toLocaleString(fmt)} m\u00B2`,
               },
               {
                 label: t.caseOverview.turnover,
                 value: caseData.company.annual_turnover_eur
-                  ? `\u20AC ${caseData.company.annual_turnover_eur.toLocaleString("de-AT")}`
+                  ? `\u20AC ${caseData.company.annual_turnover_eur.toLocaleString(fmt)}`
                   : "\u2014",
               },
               {
@@ -269,7 +270,7 @@ export default function OverviewPage() {
                 <MiniStat
                   icon={Upload}
                   label={t.caseOverview.documentsUploaded}
-                  value={caseData.progress.documents_uploaded.toLocaleString("de-AT")}
+                  value={caseData.progress.documents_uploaded.toLocaleString(fmt)}
                   color="#3B82F6"
                   delay={0.17}
                 />
@@ -283,14 +284,14 @@ export default function OverviewPage() {
                 <MiniStat
                   icon={Wrench}
                   label={t.caseOverview.measuresIdentified}
-                  value={caseData.progress.measures_identified.toLocaleString("de-AT")}
+                  value={caseData.progress.measures_identified.toLocaleString(fmt)}
                   color="#8B5CF6"
                   delay={0.21}
                 />
                 <MiniStat
                   icon={ClipboardCheck}
                   label={t.caseOverview.pendingReviews}
-                  value={caseData.progress.review_items_pending.toLocaleString("de-AT")}
+                  value={caseData.progress.review_items_pending.toLocaleString(fmt)}
                   color="#EF4444"
                   delay={0.23}
                 />

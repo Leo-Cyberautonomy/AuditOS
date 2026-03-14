@@ -45,6 +45,7 @@ export default function MeasuresPage() {
   const params = useParams<{ caseId: string }>();
   const caseId = params.caseId as string;
   const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   const [measures, setMeasures] = useState<Measure[]>([]);
   const [summary, setSummary] = useState<MeasuresSummary | null>(null);
@@ -271,13 +272,13 @@ export default function MeasuresPage() {
                 icon: TrendingDown,
                 color: "#22C55E",
                 label: locale === "de" ? "Einsparung/Jahr" : "Savings/Year",
-                value: `\u20AC${summary.total_savings_eur.toLocaleString("de-AT")}`,
+                value: `\u20AC${summary.total_savings_eur.toLocaleString(fmt)}`,
               },
               {
                 icon: DollarSign,
                 color: "#3B82F6",
                 label: locale === "de" ? "Investition gesamt" : "Total Investment",
-                value: `\u20AC${summary.total_investment_eur.toLocaleString("de-AT")}`,
+                value: `\u20AC${summary.total_investment_eur.toLocaleString(fmt)}`,
               },
               {
                 icon: Clock,
@@ -546,10 +547,10 @@ export default function MeasuresPage() {
                         </p>
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums font-semibold" style={{ color: "#22C55E" }}>
-                        {"\u20AC"}{m.annual_saving_eur.toLocaleString("de-AT")}
+                        {"\u20AC"}{m.annual_saving_eur.toLocaleString(fmt)}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums" style={{ color: "#6B7280" }}>
-                        {"\u20AC"}{m.investment_eur.toLocaleString("de-AT")}
+                        {"\u20AC"}{m.investment_eur.toLocaleString(fmt)}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums" style={{ color: "#6B7280" }}>
                         {t.finding.paybackYears(m.payback_years)}
@@ -622,18 +623,18 @@ export default function MeasuresPage() {
                         <TrendingDown size={12} style={{ color: "#22C55E" }} />
                         <span className="font-semibold tabular-nums" style={{ color: "#0F1117" }}>
                           {"\u20AC"}
-                          {m.annual_saving_eur.toLocaleString("de-AT")}/
+                          {m.annual_saving_eur.toLocaleString(fmt)}/
                           {locale === "de" ? "Jahr" : "yr"}
                         </span>
                       </div>
                       <span style={{ color: "#D1D5DB" }}>|</span>
                       <span style={{ color: "#6B7280" }} className="tabular-nums">
-                        {m.annual_saving_kwh.toLocaleString("de-AT")} kWh
+                        {m.annual_saving_kwh.toLocaleString(fmt)} kWh
                       </span>
                       <span style={{ color: "#D1D5DB" }}>|</span>
                       <span style={{ color: "#6B7280" }} className="tabular-nums">
                         {"\u20AC"}
-                        {m.investment_eur.toLocaleString("de-AT")}
+                        {m.investment_eur.toLocaleString(fmt)}
                       </span>
                     </div>
 

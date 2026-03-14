@@ -27,7 +27,8 @@ export default function UploadPage() {
   const [energyData, setEnergyData] = useState<EnergyRow[]>(DEMO_ENERGY_DATA);
   const [totals, setTotals] = useState(DEMO_TOTALS);
   const router = useRouter();
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   const STATUS_BADGE: Record<string, { label: string; style: React.CSSProperties }> = {
     confirmed: { label: t.upload.badges.confirmed, style: { backgroundColor: "#DCFCE7", color: "#15803D" } },
@@ -197,11 +198,11 @@ export default function UploadPage() {
                   <p className="text-sm font-semibold text-gray-900">{t.upload.structuredData}</p>
                   <div className="flex items-center gap-3 text-xs text-gray-500">
                     <span>{t.upload.electricityLabel}: <strong className="text-gray-900">
-                      {totals.strom_kwh.toLocaleString("de-AT")} kWh
+                      {totals.strom_kwh.toLocaleString(fmt)} kWh
                     </strong></span>
                     <span className="text-gray-200">|</span>
                     <span>{t.upload.gasLabel}: <strong className="text-gray-900">
-                      {totals.gas_kwh.toLocaleString("de-AT")} kWh
+                      {totals.gas_kwh.toLocaleString(fmt)} kWh
                     </strong></span>
                   </div>
                 </div>
@@ -230,13 +231,13 @@ export default function UploadPage() {
                       >
                         <TableCell className="text-sm font-medium text-gray-700">{row.month}</TableCell>
                         <TableCell className="text-sm text-right tabular-nums font-mono text-gray-700">
-                          {row.strom_kwh ? row.strom_kwh.toLocaleString("de-AT") : "—"}
+                          {row.strom_kwh ? row.strom_kwh.toLocaleString(fmt) : "—"}
                         </TableCell>
                         <TableCell className="text-sm text-right tabular-nums font-mono text-gray-700">
-                          {row.gas_kwh ? row.gas_kwh.toLocaleString("de-AT") : "—"}
+                          {row.gas_kwh ? row.gas_kwh.toLocaleString(fmt) : "—"}
                         </TableCell>
                         <TableCell className="text-sm text-right tabular-nums font-mono text-gray-400">
-                          {row.fernwaerme_kwh ? row.fernwaerme_kwh.toLocaleString("de-AT") : "—"}
+                          {row.fernwaerme_kwh ? row.fernwaerme_kwh.toLocaleString(fmt) : "—"}
                         </TableCell>
                         <TableCell>
                           <span
