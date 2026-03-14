@@ -12,7 +12,8 @@ interface ROIScatterChartProps {
 }
 
 export function ROIScatterChart({ measures: measuresProp }: ROIScatterChartProps = {}) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   const measures = measuresProp ?? DEMO_MEASURES;
 
@@ -42,8 +43,8 @@ export function ROIScatterChart({ measures: measuresProp }: ROIScatterChartProps
         style={{ background: "#1F2937" }}
       >
         <p className="text-white font-semibold mb-1 leading-snug">{d.id}: {d.label}</p>
-        <p className="text-gray-300 tabular-nums">{t.chart.tooltipInvestment}: €{d.investition.toLocaleString("de-AT")}</p>
-        <p className="text-gray-300 tabular-nums">{t.chart.tooltipSavings}: €{d.einsparung.toLocaleString("de-AT")}/{t.chart.tooltipYears}</p>
+        <p className="text-gray-300 tabular-nums">{t.chart.tooltipInvestment}: €{d.investition.toLocaleString(fmt)}</p>
+        <p className="text-gray-300 tabular-nums">{t.chart.tooltipSavings}: €{d.einsparung.toLocaleString(fmt)}/{t.chart.tooltipYears}</p>
         <p className="text-amber-400 font-medium tabular-nums">{t.chart.tooltipPayback}: {d.payback} {t.chart.tooltipYears}</p>
       </div>
     );

@@ -25,13 +25,14 @@ const ALL_STATUSES: CaseStatus[] = [
 ];
 
 const AUDIT_TYPES = [
-  { value: "grosses_energieaudit", label: "Gro\u00DFes Energieaudit" },
-  { value: "kleines_energieaudit", label: "Kleines Energieaudit" },
-  { value: "internes_audit", label: "Internes Audit" },
+  { value: "comprehensive_audit", label: "Comprehensive Audit" },
+  { value: "focused_audit", label: "Focused Audit" },
+  { value: "internal_audit", label: "Internal Audit" },
+  { value: "surveillance_audit", label: "Surveillance Audit" },
 ];
 
 export default function CasesPage() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const router = useRouter();
   const setActiveCaseId = useAppStore((s: { setActiveCaseId: (id: string | null) => void }) => s.setActiveCaseId);
 
@@ -89,14 +90,14 @@ export default function CasesPage() {
           e_control_id: "",
           company: "",
         },
-        notes: `Audit-Typ: ${auditTypeLabel}`,
+        notes: `Audit Type: ${auditTypeLabel}`,
       });
       setActiveCaseId(newCase.id);
       setShowCreateModal(false);
       setFormData({ companyName: "", companyAddress: "", auditType: AUDIT_TYPES[0].value });
       router.push(`/cases/${newCase.id}/overview`);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Fehler beim Erstellen des Falls");
+      setCreateError(err instanceof Error ? err.message : t.cases.createError);
     } finally {
       setCreating(false);
     }
@@ -172,7 +173,7 @@ export default function CasesPage() {
             minWidth: 180,
           }}
         >
-          <option value="">Alle</option>
+          <option value="">{t.cases.allStatuses}</option>
           {ALL_STATUSES.map((s) => (
             <option key={s} value={s}>
               {(t.shared.caseStatuses as Record<string, string>)[s]}
@@ -216,7 +217,7 @@ export default function CasesPage() {
             title={t.shared.noData}
             description={
               statusFilter || searchQuery
-                ? "Versuchen Sie andere Filteroptionen."
+                ? t.cases.noResults
                 : undefined
             }
           />
@@ -338,7 +339,7 @@ export default function CasesPage() {
                           className="px-4 py-3 text-sm"
                           style={{ color: "#6B7280" }}
                         >
-                          {new Date(c.updated_at).toLocaleDateString("de-AT")}
+                          {new Date(c.updated_at).toLocaleDateString(locale === "de" ? "de-DE" : "en-US")}
                         </td>
                         <td className="px-4 py-3">
                           <Link
@@ -428,7 +429,7 @@ export default function CasesPage() {
                     className="block text-sm font-medium"
                     style={{ color: "#D1D5DB" }}
                   >
-                    Unternehmen <span style={{ color: "#D97706" }}>*</span>
+                    {t.cases.companyLabel} <span style={{ color: "#D97706" }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -436,7 +437,7 @@ export default function CasesPage() {
                     autoFocus
                     value={formData.companyName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, companyName: e.target.value }))}
-                    placeholder="z.B. Mühlviertler Feinkost GmbH"
+                    placeholder={t.cases.companyPlaceholder}
                     className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-all"
                     style={{
                       backgroundColor: "#2A2B3A",
@@ -454,13 +455,13 @@ export default function CasesPage() {
                     className="block text-sm font-medium"
                     style={{ color: "#D1D5DB" }}
                   >
-                    Adresse
+                    {t.cases.addressLabel}
                   </label>
                   <input
                     type="text"
                     value={formData.companyAddress}
                     onChange={(e) => setFormData((prev) => ({ ...prev, companyAddress: e.target.value }))}
-                    placeholder="z.B. Industriestraße 12, 4240 Freistadt"
+                    placeholder={t.cases.addressPlaceholder}
                     className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-all"
                     style={{
                       backgroundColor: "#2A2B3A",
@@ -478,7 +479,7 @@ export default function CasesPage() {
                     className="block text-sm font-medium"
                     style={{ color: "#D1D5DB" }}
                   >
-                    Audit-Typ
+                    {t.cases.auditTypeLabel}
                   </label>
                   <select
                     value={formData.auditType}
@@ -537,12 +538,12 @@ export default function CasesPage() {
                     {creating ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
-                        Erstelle...
+                        {t.cases.creating}
                       </>
                     ) : (
                       <>
                         <Plus size={16} />
-                        Fall anlegen
+                        {t.cases.createBtn}
                       </>
                     )}
                   </button>

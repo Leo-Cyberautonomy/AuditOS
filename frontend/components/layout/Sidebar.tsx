@@ -122,9 +122,9 @@ export function Sidebar() {
           </p>
           <p className="text-white text-xs font-medium leading-snug">{DEMO_COMPANY.name}</p>
           <p className="text-gray-500 text-[11px] mt-0.5">
-            {DEMO_COMPANY.employees} MA · {DEMO_COMPANY.building_area_m2.toLocaleString("de-AT")} m²
+            {DEMO_COMPANY.employees} MA · {DEMO_COMPANY.building_area_m2.toLocaleString()} m²
           </p>
-          <p className="text-gray-500 text-[11px]">Freistadt · ÖNACE {DEMO_COMPANY.nace_code}</p>
+          <p className="text-gray-500 text-[11px]">NACE {DEMO_COMPANY.nace_code}</p>
         </div>
 
         {/* Auditor */}

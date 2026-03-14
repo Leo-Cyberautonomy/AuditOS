@@ -3,8 +3,8 @@ import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n";
 
 export const metadata: Metadata = {
-  title: "AuditOS — Energieaudit Plattform",
-  description: "KI-gestützte Energieaudit-Software für österreichische Energieauditoren",
+  title: "AuditAI — AI Field Inspection Platform",
+  description: "AI-powered field inspection platform with real-time voice and vision. Supports energy, safety, food, construction, and more.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased" style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       }}>

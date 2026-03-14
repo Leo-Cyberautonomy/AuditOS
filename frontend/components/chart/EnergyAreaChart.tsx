@@ -29,7 +29,8 @@ interface EnergyAreaChartProps {
 }
 
 export function EnergyAreaChart({ data: dataProp, onMonthClick }: EnergyAreaChartProps = {}) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
   const sourceData = dataProp ?? DEMO_ENERGY_DATA;
 
   const chartData = sourceData.map((row) => ({
@@ -51,7 +52,7 @@ export function EnergyAreaChart({ data: dataProp, onMonthClick }: EnergyAreaChar
         <p className="text-gray-300 font-medium mb-1.5">{label}</p>
         {payload.map((p: any) => (
           <p key={p.name} style={{ color: p.color }} className="tabular-nums">
-            {p.name}: {p.value ? p.value.toLocaleString("de-AT") : "—"} kWh
+            {p.name}: {p.value ? p.value.toLocaleString(fmt) : "—"} kWh
           </p>
         ))}
       </div>

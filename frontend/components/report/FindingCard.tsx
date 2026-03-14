@@ -11,7 +11,8 @@ interface FindingCardProps {
 }
 
 export function FindingCard({ measure, isSelected, onClick }: FindingCardProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   const priorityColor = {
     "sehr hoch": { bg: "#FEE2E2", text: "#991B1B", dot: "#EF4444" },
@@ -65,16 +66,16 @@ export function FindingCard({ measure, isSelected, onClick }: FindingCardProps) 
           <div className="flex items-center gap-1.5 text-xs">
             <TrendingDown size={12} className="text-green-500" />
             <span className="font-semibold text-gray-900 tabular-nums">
-              €{measure.annual_saving_eur.toLocaleString("de-AT")}{t.finding.perYear}
+              €{measure.annual_saving_eur.toLocaleString(fmt)}{t.finding.perYear}
             </span>
           </div>
           <span className="text-gray-300">·</span>
           <span className="text-xs text-gray-500 tabular-nums">
-            {measure.annual_saving_kwh.toLocaleString("de-AT")} kWh{t.finding.perYear}
+            {measure.annual_saving_kwh.toLocaleString(fmt)} kWh{t.finding.perYear}
           </span>
           <span className="text-gray-300">·</span>
           <span className="text-xs text-gray-500 tabular-nums">
-            {t.finding.investment} €{measure.investment_eur.toLocaleString("de-AT")}
+            {t.finding.investment} €{measure.investment_eur.toLocaleString(fmt)}
           </span>
         </div>
 

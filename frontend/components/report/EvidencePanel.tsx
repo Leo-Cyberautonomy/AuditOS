@@ -18,7 +18,8 @@ const TREE_SECTION_KEYS = [
 ] as const;
 
 export function EvidencePanel({ measure, onClose }: EvidencePanelProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   return (
     <AnimatePresence>
@@ -57,8 +58,8 @@ export function EvidencePanel({ measure, onClose }: EvidencePanelProps) {
             {/* Key numbers */}
             <div className="mt-3 grid grid-cols-3 gap-2">
               {[
-                { label: t.evidence.savingsPerYear, value: `€${measure.annual_saving_eur.toLocaleString("de-AT")}` },
-                { label: t.evidence.investment,     value: `€${measure.investment_eur.toLocaleString("de-AT")}` },
+                { label: t.evidence.savingsPerYear, value: `€${measure.annual_saving_eur.toLocaleString(fmt)}` },
+                { label: t.evidence.investment,     value: `€${measure.investment_eur.toLocaleString(fmt)}` },
                 { label: t.evidence.payback,        value: t.evidence.paybackYears(measure.payback_years) },
               ].map((item) => (
                 <div key={item.label} className="rounded-lg p-2 text-center" style={{ backgroundColor: "#F9FAFB" }}>

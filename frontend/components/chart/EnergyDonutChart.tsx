@@ -14,7 +14,8 @@ interface EnergyDonutChartProps {
 }
 
 export function EnergyDonutChart({ totals: totalsProp }: EnergyDonutChartProps = {}) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   const src = totalsProp ?? DEMO_TOTALS;
   const strom = src.strom_kwh;
@@ -38,7 +39,7 @@ export function EnergyDonutChart({ totals: totalsProp }: EnergyDonutChartProps =
       >
         <p className="text-white font-semibold mb-1">{d.name}</p>
         <p className="text-gray-300 tabular-nums">
-          {(d.value as number).toLocaleString("de-AT")} kWh
+          {(d.value as number).toLocaleString(fmt)} kWh
         </p>
         <p className="text-gray-400 tabular-nums">{pct}%</p>
       </div>

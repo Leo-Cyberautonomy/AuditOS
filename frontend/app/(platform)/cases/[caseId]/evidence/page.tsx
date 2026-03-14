@@ -56,13 +56,13 @@ function shortId(id: string): string {
   return id.slice(-8);
 }
 
-function formatMonth(month: string): string {
+function formatMonth(month: string, fmt: string = "en-US"): string {
   // Expected format: "2023-01" or "Jan 23" etc.
   // Try to parse as date-like string
   try {
     const d = new Date(month + "-01");
     if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString("de-AT", { month: "short", year: "2-digit" });
+      return d.toLocaleDateString(fmt, { month: "short", year: "2-digit" });
     }
   } catch {
     // Fall through
@@ -148,10 +148,12 @@ function DetailDrawer({
   entry,
   onClose,
   t,
+  fmt,
 }: {
   entry: LedgerEntry;
   onClose: () => void;
   t: ReturnType<typeof useT>["t"];
+  fmt: string;
 }) {
   const carriers = t.evidence.carriers as Record<string, string>;
   const statuses = t.evidence.statuses as Record<string, string>;
@@ -176,12 +178,12 @@ function DetailDrawer({
         </span>
       ),
     },
-    { label: t.evidence.month, value: formatMonth(entry.month) },
+    { label: t.evidence.month, value: formatMonth(entry.month, fmt) },
     {
       label: t.evidence.value,
       value:
         entry.value_kwh !== null
-          ? `${entry.value_kwh.toLocaleString("de-AT")} ${t.shared.kwh}`
+          ? `${entry.value_kwh.toLocaleString(fmt)} ${t.shared.kwh}`
           : "\u2013",
     },
     {
@@ -193,7 +195,7 @@ function DetailDrawer({
       value: entry.source_doc_id ?? "\u2013",
     },
     {
-      label: "Notiz",
+      label: "Note",
       value: entry.note ?? "\u2013",
     },
     {
@@ -206,7 +208,7 @@ function DetailDrawer({
     },
     {
       label: t.evidence.lastUpdated,
-      value: new Date(entry.updated_at).toLocaleDateString("de-AT"),
+      value: new Date(entry.updated_at).toLocaleDateString(fmt),
     },
   ];
 
@@ -336,7 +338,8 @@ function DetailDrawer({
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function EvidencePage() {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
   const params = useParams();
   const caseId = params.caseId as string;
 
@@ -505,30 +508,30 @@ export default function EvidencePage() {
             <StatBadge
               icon={<Database size={13} />}
               value={`${entries.length}`}
-              label="Eintr\u00e4ge"
+              label={t.auditLog.entries}
             />
             <StatBadge
               icon={<span style={{ fontSize: 12, fontWeight: 700 }}>kWh</span>}
-              value={totals.total_kwh.toLocaleString("de-AT")}
+              value={totals.total_kwh.toLocaleString(fmt)}
               label={t.shared.kwh}
             />
             <StatBadge
               icon={<CheckCircle2 size={13} style={{ color: "#22C55E" }} />}
               value={`${Math.round(totals.readiness_score)}%`}
-              label="Bereit"
+              label={t.dashboard.kpiReadiness}
             />
             <div
               className="hidden sm:flex items-center gap-2 text-xs"
               style={{ color: "#6B7280" }}
             >
               <span style={{ color: "#22C55E" }}>
-                {totals.complete_months} vollst.
+                {totals.complete_months} {t.upload.badges.confirmed.toLowerCase()}
               </span>
               <span style={{ color: "#D97706" }}>
-                {totals.estimated_months} gesch.
+                {totals.estimated_months} {t.upload.badges.estimated.toLowerCase()}
               </span>
               <span style={{ color: "#EF4444" }}>
-                {totals.missing_months} fehl.
+                {totals.missing_months} {t.upload.badges.missing.toLowerCase()}
               </span>
             </div>
           </motion.div>
@@ -721,7 +724,7 @@ export default function EvidencePage() {
                             className="px-4 py-3 text-sm"
                             style={{ color: "#374151" }}
                           >
-                            {formatMonth(entry.month)}
+                            {formatMonth(entry.month, fmt)}
                           </td>
 
                           {/* Value (editable) */}
@@ -767,7 +770,7 @@ export default function EvidencePage() {
                                 title={t.shared.edit}
                               >
                                 {entry.value_kwh !== null
-                                  ? entry.value_kwh.toLocaleString("de-AT")
+                                  ? entry.value_kwh.toLocaleString(fmt)
                                   : "\u2013"}
                               </span>
                             )}
@@ -842,7 +845,7 @@ export default function EvidencePage() {
                             }}
                           >
                             {new Date(entry.updated_at).toLocaleDateString(
-                              "de-AT"
+                              fmt
                             )}
                           </td>
                         </motion.tr>
@@ -874,7 +877,7 @@ export default function EvidencePage() {
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      {visibleSum.toLocaleString("de-AT")}
+                      {visibleSum.toLocaleString(fmt)}
                     </td>
                     <td
                       className="px-4 py-3 text-xs font-semibold"
@@ -899,6 +902,7 @@ export default function EvidencePage() {
             entry={selectedEntry}
             onClose={() => setSelectedEntry(null)}
             t={t}
+            fmt={fmt}
           />
         )}
       </AnimatePresence>

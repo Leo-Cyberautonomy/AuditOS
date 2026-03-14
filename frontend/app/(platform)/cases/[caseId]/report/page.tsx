@@ -56,12 +56,11 @@ const _EV_MARKERS = [
   "Messung", "Measurement", "Foto", "Photo",
   "Klasse A", "Klasse B", "Class A", "Class B",
   "Zähler", "Meter", "Sensor",
-  "DIN", "EN\\s", "ÖNORM", "ISO", "EEffG", "BGBl", "E-Control", "VDI", "ASHRAE",
+  "DIN", "EN\\s", "ISO", "OSHA", "HACCP", "NFPA", "ASHRAE", "ASTM", "FDA", "VDI",
   "Anlage", "Anhang", "Appendix", "Annex",
   "Tabelle", "Table", "Tab\\.", "Abb\\.", "Abbildung", "Figure", "Fig\\.",
   "Abschnitt", "Section", "Kapitel", "Chapter",
   "Rechnung", "Invoice", "Stromrechnung", "Gasrechnung",
-  "Energieausweis", "Lastprofil", "Energiebericht",
 ].join("|");
 
 const EVIDENCE_REF_PATTERN = new RegExp(
@@ -1177,8 +1176,8 @@ export default function ReportPage() {
                         {"\u20AC"}
                         {measures
                           .reduce((s, m) => s + m.annual_saving_eur, 0)
-                          .toLocaleString("de-AT")}
-                        /Jahr
+                          .toLocaleString(locale === "de" ? "de-DE" : "en-US")}
+                        {t.finding.perYear}
                       </strong>
                     </p>
                   )}

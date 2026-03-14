@@ -20,7 +20,7 @@ import { StatusChip } from "@/components/shared/StatusChip";
 import type { Case, ReviewStats } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const setActiveCaseId = useAppStore((s: { setActiveCaseId: (id: string | null) => void }) => s.setActiveCaseId);
 
   const [cases, setCases] = useState<Case[]>([]);
@@ -167,7 +167,7 @@ export default function DashboardPage() {
           <>
             <KPICard
               title={t.globalDashboard.activeCases}
-              value={activeCasesCount.toLocaleString("de-AT")}
+              value={activeCasesCount.toLocaleString(locale === "de" ? "de-DE" : "en-US")}
               unit={t.cases.title}
               icon={FolderOpen}
               accentColor="#D97706"
@@ -175,7 +175,7 @@ export default function DashboardPage() {
             />
             <KPICard
               title={t.globalDashboard.awaitingReview}
-              value={pendingReviewsCount.toLocaleString("de-AT")}
+              value={pendingReviewsCount.toLocaleString(locale === "de" ? "de-DE" : "en-US")}
               unit={t.review.pendingItems}
               icon={CheckCircle}
               accentColor="#EF4444"
@@ -183,7 +183,7 @@ export default function DashboardPage() {
             />
             <KPICard
               title={t.globalDashboard.extractionConflicts}
-              value={anomalyCount.toLocaleString("de-AT")}
+              value={anomalyCount.toLocaleString(locale === "de" ? "de-DE" : "en-US")}
               unit={t.review.categories.anomaly}
               icon={AlertTriangle}
               accentColor="#F59E0B"
@@ -330,7 +330,7 @@ export default function DashboardPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm" style={{ color: "#6B7280" }}>
-                      {new Date(c.updated_at).toLocaleDateString("de-AT")}
+                      {new Date(c.updated_at).toLocaleDateString(locale === "de" ? "de-DE" : "en-US")}
                     </td>
                   </motion.tr>
                 ))

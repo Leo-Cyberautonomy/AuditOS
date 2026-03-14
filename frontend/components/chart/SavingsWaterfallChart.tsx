@@ -12,7 +12,8 @@ interface SavingsWaterfallChartProps {
 }
 
 export function SavingsWaterfallChart({ measures: measuresProp }: SavingsWaterfallChartProps = {}) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const fmt = locale === "de" ? "de-DE" : "en-US";
 
   const measures = measuresProp ?? DEMO_MEASURES;
 
@@ -46,10 +47,10 @@ export function SavingsWaterfallChart({ measures: measuresProp }: SavingsWaterfa
           {label}: {measure?.title}
         </p>
         <p className="text-amber-400 tabular-nums">
-          {t.chart.savingsPerMeasure}: €{(saving as number).toLocaleString("de-AT")}
+          {t.chart.savingsPerMeasure}: €{(saving as number).toLocaleString(fmt)}
         </p>
         <p className="text-green-400 tabular-nums">
-          {t.chart.savingsCumulative}: €{(cum as number).toLocaleString("de-AT")}
+          {t.chart.savingsCumulative}: €{(cum as number).toLocaleString(fmt)}
         </p>
       </div>
     );
