@@ -32,9 +32,11 @@ class AddTranscriptRequest(BaseModel):
 
 @router.post("/sessions")
 async def create_session(req: CreateSessionRequest):
-    case = store_module.cases.get(req.case_id)
-    if not case:
-        raise HTTPException(404, f"Case {req.case_id} not found")
+    # Allow "global" case_id for companion sessions (not tied to a specific case)
+    if req.case_id != "global":
+        case = store_module.cases.get(req.case_id)
+        if not case:
+            raise HTTPException(404, f"Case {req.case_id} not found")
 
     session = LiveSession(
         id=str(uuid4()),
