@@ -44,6 +44,7 @@ class Auditor(BaseModel):
 class CaseCreate(BaseModel):
     company: Company
     auditor: Auditor
+    domain: str = "energy"
     notes: Optional[str] = None
 
 
@@ -67,6 +68,7 @@ class Case(BaseModel):
     company: Company
     auditor: Auditor
     status: CaseStatus = "intake"
+    domain: str = "energy"
     notes: Optional[str] = None
     created_at: str
     updated_at: str

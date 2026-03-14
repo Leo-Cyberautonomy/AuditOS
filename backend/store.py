@@ -172,6 +172,7 @@ def _seed_case(data: dict) -> None:
         company=company,
         auditor=auditor,
         status=data.get("status", "intake"),
+        domain=data.get("domain", "energy"),
         notes=data.get("notes"),
         created_at=ts,
         updated_at=data.get("updated_at", ts),

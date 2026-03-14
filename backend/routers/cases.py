@@ -7,8 +7,15 @@ import store
 from models import Case, CaseCreate, CaseUpdate, CaseProgress
 from models.case import VALID_TRANSITIONS
 from services.audit_log_service import log_event
+from agents.domains import get_all_domain_names
 
 router = APIRouter()
+
+
+@router.get("/domains")
+async def list_domains():
+    """Return available audit domains."""
+    return get_all_domain_names()
 
 
 def _compute_progress(case_id: str) -> CaseProgress:
@@ -55,6 +62,7 @@ async def create_case(data: CaseCreate):
         company=data.company,
         auditor=data.auditor,
         status="intake",
+        domain=data.domain,
         notes=data.notes,
         created_at=now,
         updated_at=now,
