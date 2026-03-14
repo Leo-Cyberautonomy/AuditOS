@@ -18,7 +18,6 @@ import {
 import { LiveAuditSession, type LiveAuditCallbacks } from "@/lib/live-audit";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? "";
 
 interface TranscriptEntry {
   role: "user" | "assistant";
@@ -58,6 +57,12 @@ export default function LiveAuditPage() {
   const frameIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const playbackContextRef = useRef<AudioContext | null>(null);
+  const isMutedRef = useRef(isMuted);
+
+  // Keep muted ref in sync
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -86,17 +91,8 @@ export default function LiveAuditPage() {
         }
         return [...prev, { role, text, timestamp: new Date() }];
       });
-
-      // Also send to backend for persistence
-      if (sessionId) {
-        fetch(`${API_BASE}/live/sessions/${sessionId}/transcript`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role, text }),
-        }).catch(() => {}); // fire and forget
-      }
     },
-    [sessionId]
+    []
   );
 
   const addFinding = useCallback(
@@ -116,21 +112,8 @@ export default function LiveAuditPage() {
         timestamp: new Date(),
       };
       setFindings((prev) => [...prev, finding]);
-
-      // Also send to backend
-      if (sessionId) {
-        fetch(`${API_BASE}/live/sessions/${sessionId}/findings`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            session_id: sessionId,
-            type: finding.type,
-            data: args,
-          }),
-        }).catch(() => {});
-      }
     },
-    [sessionId]
+    []
   );
 
   const playAudio = useCallback((audioData: ArrayBuffer) => {
@@ -157,11 +140,6 @@ export default function LiveAuditPage() {
   }, []);
 
   const startSession = async () => {
-    if (!GEMINI_API_KEY) {
-      setError("NEXT_PUBLIC_GEMINI_API_KEY is not set");
-      return;
-    }
-
     setError(null);
     setStatus("connecting");
 
@@ -172,10 +150,12 @@ export default function LiveAuditPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ case_id: caseId }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setSessionId(data.id);
+      if (!res.ok) {
+        throw new Error("Failed to create session");
       }
+      const data = await res.json();
+      const newSessionId = data.id;
+      setSessionId(newSessionId);
 
       // Set up audio/video capture
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -195,17 +175,23 @@ export default function LiveAuditPage() {
         setIsCameraOn(true);
       }
 
-      // Create Gemini Live session
+      // Create WebSocket session via backend (ADK-powered)
       const callbacks: LiveAuditCallbacks = {
         onTranscript: addTranscript,
         onAudioOutput: playAudio,
         onToolCall: addFinding,
-        onStatusChange: (s) =>
-          setStatus(s as typeof status),
+        onToolResult: () => {}, // Tool results are handled server-side by ADK
+        onTurnComplete: () => {},
+        onStatusChange: (s) => setStatus(s as typeof status),
         onError: (e) => setError(e),
       };
 
-      const liveSession = new LiveAuditSession(GEMINI_API_KEY, callbacks);
+      const liveSession = new LiveAuditSession(
+        API_BASE,
+        caseId,
+        newSessionId,
+        callbacks
+      );
       sessionRef.current = liveSession;
       await liveSession.connect();
 
@@ -217,7 +203,7 @@ export default function LiveAuditPage() {
       processorRef.current = processor;
 
       processor.onaudioprocess = (e) => {
-        if (isMuted || !liveSession.active) return;
+        if (isMutedRef.current || !liveSession.active) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const int16Data = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
@@ -226,9 +212,7 @@ export default function LiveAuditPage() {
             Math.min(32767, inputData[i] * 32768)
           );
         }
-        liveSession.sendAudio(
-          new Blob([int16Data.buffer], { type: "audio/pcm" })
-        );
+        liveSession.sendAudio(int16Data.buffer);
       };
 
       source.connect(processor);
@@ -283,16 +267,15 @@ export default function LiveAuditPage() {
       streamRef.current = null;
     }
 
-    // Disconnect Gemini session
+    // Close playback context
+    if (playbackContextRef.current) {
+      playbackContextRef.current.close();
+      playbackContextRef.current = null;
+    }
+
+    // Disconnect WebSocket session
     sessionRef.current?.disconnect();
     sessionRef.current = null;
-
-    // End backend session
-    if (sessionId) {
-      fetch(`${API_BASE}/live/sessions/${sessionId}/end`, {
-        method: "POST",
-      }).catch(() => {});
-    }
 
     setIsCameraOn(false);
     setStatus("disconnected");
@@ -338,7 +321,7 @@ export default function LiveAuditPage() {
       case "idle":
         return "Ready to start";
       case "connecting":
-        return "Connecting...";
+        return "Connecting to AI...";
       case "connected":
         return "Live -- AI Listening";
       case "disconnected":

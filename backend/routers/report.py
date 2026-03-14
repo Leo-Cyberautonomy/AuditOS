@@ -171,7 +171,7 @@ async def stream_report(lang: str = "de"):
             def collect_chunks():
                 chunks = []
                 for chunk in client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
+                    model="gemini-3-flash-preview",
                     contents=[
                         {"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_prompt}]}
                     ],
@@ -314,7 +314,7 @@ async def stream_case_report(case_id: str, lang: str = "de"):
             def collect_chunks():
                 chunks = []
                 for chunk in client.models.generate_content_stream(
-                    model="gemini-2.5-flash",
+                    model="gemini-3-flash-preview",
                     contents=[
                         {"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_prompt}]}
                     ],

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import store
 from routers import extract, report, compliance, upload, live_audit
+from routers import ws as ws_router
 from routers import cases as cases_router
 from routers import documents as documents_router
 from routers import ledger as ledger_router
@@ -49,6 +50,7 @@ app.include_router(reviews_router.router, prefix="/reviews", tags=["reviews"])
 app.include_router(audit_log_router.router, prefix="/audit-log", tags=["audit-log"])
 app.include_router(measures_router.router, prefix="/cases/{case_id}/measures", tags=["measures"])
 app.include_router(live_audit.router, prefix="/live", tags=["live-audit"])
+app.include_router(ws_router.router, prefix="/ws", tags=["websocket"])
 
 
 @app.get("/health")
