@@ -100,6 +100,7 @@ export function StreamingText({ isStreaming, onComplete, locale }: StreamingText
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
         const res = await fetch(`${apiBase}/report/stream?lang=${locale}`, {
           method: "POST",
+          headers: { "Content-Length": "0" },
           signal: abortRef.current!.signal,
         });
 

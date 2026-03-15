@@ -18,7 +18,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 // ─── Existing endpoints (backward compatible) ──────────────────────────────
 
 export async function fetchExtractedData() {
-  const res = await fetch(`${API_BASE}/extract`, { method: "POST" });
+  const res = await fetch(`${API_BASE}/extract`, { method: "POST", headers: { "Content-Length": "0" } });
   if (!res.ok) throw new Error("Extract failed");
   return res.json();
 }
@@ -34,7 +34,7 @@ export function createReportStream(): EventSource {
 }
 
 export async function* streamReport(): AsyncGenerator<string> {
-  const res = await fetch(`${API_BASE}/report/stream`, { method: "POST" });
+  const res = await fetch(`${API_BASE}/report/stream`, { method: "POST", headers: { "Content-Length": "0" } });
   if (!res.ok || !res.body) throw new Error("Stream failed");
 
   const reader = res.body.getReader();
@@ -301,7 +301,10 @@ export async function fetchMeasure(caseId: string, measureId: string): Promise<M
 // ─── Case-scoped Report & Compliance ──────────────────────────────────────
 
 export async function* streamCaseReport(caseId: string, lang = "de"): AsyncGenerator<string> {
-  const res = await fetch(`${API_BASE}/report/case/${caseId}/stream?lang=${lang}`, { method: "POST" });
+  const res = await fetch(`${API_BASE}/report/case/${caseId}/stream?lang=${lang}`, {
+    method: "POST",
+    headers: { "Content-Length": "0" },
+  });
   if (!res.ok || !res.body) throw new Error("Stream failed");
 
   const reader = res.body.getReader();
