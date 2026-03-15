@@ -329,12 +329,13 @@ async def _downstream(
             # Handle output transcription (model speech -> text)
             if event.output_transcription and event.output_transcription.text:
                 text = event.output_transcription.text
-                await websocket.send_json({
-                    "type": "transcript",
-                    "role": "assistant",
-                    "text": text,
-                })
-                await _save_transcript(session_id, "assistant", text)
+                if not _is_thinking_text(text):
+                    await websocket.send_json({
+                        "type": "transcript",
+                        "role": "assistant",
+                        "text": text,
+                    })
+                    await _save_transcript(session_id, "assistant", text)
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
@@ -347,9 +348,8 @@ async def _downstream(
                             "data": audio_b64,
                         })
 
-                    # Text output (when not in audio mode)
-                    # Skip thought/reasoning parts — only forward actual responses
-                    if part.text and not getattr(part, "thought", False):
+                    # Text output — skip thinking/reasoning parts
+                    if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
                         await websocket.send_json({
                             "type": "text",
                             "text": part.text,
@@ -535,12 +535,13 @@ async def _companion_downstream(
             # Handle output transcription (model speech -> text)
             if event.output_transcription and event.output_transcription.text:
                 text = event.output_transcription.text
-                await websocket.send_json({
-                    "type": "transcript",
-                    "role": "assistant",
-                    "text": text,
-                })
-                await _save_transcript(session_id, "assistant", text)
+                if not _is_thinking_text(text):
+                    await websocket.send_json({
+                        "type": "transcript",
+                        "role": "assistant",
+                        "text": text,
+                    })
+                    await _save_transcript(session_id, "assistant", text)
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
@@ -553,9 +554,8 @@ async def _companion_downstream(
                             "data": audio_b64,
                         })
 
-                    # Text output (when not in audio mode)
-                    # Skip thought/reasoning parts — only forward actual responses
-                    if part.text and not getattr(part, "thought", False):
+                    # Text output — skip thinking/reasoning parts
+                    if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
                         await websocket.send_json({
                             "type": "text",
                             "text": part.text,
@@ -603,7 +603,28 @@ async def _companion_downstream(
             pass
 
 
-# --- Shared helper ---
+# --- Shared helpers ---
+
+import re
+
+_THINKING_PATTERNS = re.compile(
+    r"^\*\*[A-Z]|"           # **Bold Title at start (e.g., "**Defining AuditAI's Scope**")
+    r"^I'm focusing on|"     # "I'm focusing on..."
+    r"^I'm solidifying|"     # "I'm solidifying..."
+    r"^I'm aiming|"          # "I'm aiming..."
+    r"^My primary goal|"     # "My primary goal..."
+    r"^My current focus|"    # "My current focus..."
+    r"^I don't need any",    # "I don't need any special resources..."
+    re.MULTILINE
+)
+
+
+def _is_thinking_text(text: str) -> bool:
+    """Detect Gemini's internal thinking/reasoning text that should not be shown to users."""
+    if not text:
+        return False
+    return bool(_THINKING_PATTERNS.search(text))
+
 
 async def _save_transcript(session_id: str, role: str, text: str):
     """Save transcript entry to live session in Firestore."""
