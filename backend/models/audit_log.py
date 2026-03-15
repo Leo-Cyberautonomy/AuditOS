@@ -23,6 +23,12 @@ AuditAction = Literal[
     "report_section_edited",
     "export_generated",
     "compliance_prefill_generated",
+    "live_session_started",
+    "live_session_ended",
+    "live_finding_equipment",
+    "live_finding_meter_reading",
+    "live_finding_issue",
+    "live_finding_evidence",
 ]
 
 
