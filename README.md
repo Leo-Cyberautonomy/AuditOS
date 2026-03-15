@@ -47,12 +47,23 @@ AuditAI puts an expert AI co-pilot in the auditor's pocket:
    │ LiveAuditAgent│ │ReportAgent │ │ExtractionAgent│
    │ (native-audio)│ │(3-flash)   │ │  (3-flash)    │
    │              │ │            │ │               │
-   │ 5 Tools:    │ │ 3 Tools:   │ │ 2 Tools:      │
-   │ - equipment  │ │ - case data│ │ - extract data│
-   │ - meters    │ │ - measures │ │ - anomalies   │
-   │ - issues    │ │ - evidence │ │               │
+   │ 14 Tools:   │ │ 3 Tools:   │ │ 2 Tools:      │
+   │ 5 Field:    │ │ - case data│ │ - extract data│
+   │ - equipment │ │ - measures │ │ - anomalies   │
+   │ - meters    │ │ - evidence │ │               │
+   │ - issues    │ │            │ │               │
    │ - evidence  │ │            │ │               │
    │ - standards │ │            │ │               │
+   │ 9 Desk:     │ │            │ │               │
+   │ - navigate  │ │            │ │               │
+   │ - highlight │ │            │ │               │
+   │ - filter    │ │            │ │               │
+   │ - explain   │ │            │ │               │
+   │ - regulation│ │            │ │               │
+   │ - summary   │ │            │ │               │
+   │ - screenshot│ │            │ │               │
+   │ - read page │ │            │ │               │
+   │ - click     │ │            │ │               │
    └──────────────┘ └────────────┘ └───────────────┘
 ```
 

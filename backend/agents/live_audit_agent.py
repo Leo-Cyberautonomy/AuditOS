@@ -247,7 +247,7 @@ live_audit_agent = Agent(
 # --- Companion Agent (Field + Desk tools) ---
 
 def _build_companion_agent() -> Agent:
-    """Build companion agent with all 11 tools (5 field + 6 desk).
+    """Build companion agent with all 14 tools (5 field + 9 desk).
 
     Deferred import to avoid circular dependency at module level.
     """

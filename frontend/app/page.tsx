@@ -323,8 +323,8 @@ export default function LandingPage() {
                                    │  2.5 Flash  │
                                    └─────────────┘
 
-  11 Tools: 5 Field (record, flag, capture, query)
-          + 6 Desk  (navigate, highlight, filter, explain)
+  14 Tools: 5 Field (record equipment, meters, issues, evidence, standards)
+          + 9 Desk  (navigate, highlight, filter, explain, regulations, summary, screenshot, read page, click)
 `}</pre>
           </div>
 

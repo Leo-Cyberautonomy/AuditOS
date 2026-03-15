@@ -259,30 +259,38 @@ async def _upstream(websocket: WebSocket, live_queue: LiveRequestQueue):
     try:
         while True:
             raw = await websocket.receive_text()
-            msg = json.loads(raw)
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                logger.warning("Invalid JSON from client, skipping")
+                continue
 
-            if msg["type"] == "audio":
-                audio_bytes = base64.b64decode(msg["data"])
-                blob = types.Blob(
-                    mime_type="audio/pcm;rate=16000",
-                    data=audio_bytes,
-                )
-                live_queue.send_realtime(blob)
+            try:
+                if msg["type"] == "audio":
+                    audio_bytes = base64.b64decode(msg["data"])
+                    blob = types.Blob(
+                        mime_type="audio/pcm;rate=16000",
+                        data=audio_bytes,
+                    )
+                    live_queue.send_realtime(blob)
 
-            elif msg["type"] == "image":
-                image_bytes = base64.b64decode(msg["data"])
-                blob = types.Blob(
-                    mime_type="image/jpeg",
-                    data=image_bytes,
-                )
-                live_queue.send_realtime(blob)
+                elif msg["type"] == "image":
+                    image_bytes = base64.b64decode(msg["data"])
+                    blob = types.Blob(
+                        mime_type="image/jpeg",
+                        data=image_bytes,
+                    )
+                    live_queue.send_realtime(blob)
 
-            elif msg["type"] == "text":
-                content = types.Content(
-                    role="user",
-                    parts=[types.Part(text=msg["text"])],
-                )
-                live_queue.send_content(content)
+                elif msg["type"] == "text":
+                    content = types.Content(
+                        role="user",
+                        parts=[types.Part(text=msg["text"])],
+                    )
+                    live_queue.send_content(content)
+            except Exception as e:
+                logger.warning(f"Error processing message type={msg.get('type')}: {e}")
+                continue
 
     except WebSocketDisconnect:
         logger.info("Upstream: client disconnected")
@@ -339,20 +347,15 @@ async def _downstream(
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
+                has_audio_output = False
                 for part in event.content.parts:
                     # Audio output
                     if part.inline_data and part.inline_data.data:
+                        has_audio_output = True
                         audio_b64 = base64.b64encode(part.inline_data.data).decode()
                         await websocket.send_json({
                             "type": "audio",
                             "data": audio_b64,
-                        })
-
-                    # Text output — skip thinking/reasoning parts
-                    if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
-                        await websocket.send_json({
-                            "type": "text",
-                            "text": part.text,
                         })
 
                     # Tool call results (ADK handles execution automatically)
@@ -369,6 +372,15 @@ async def _downstream(
                             "name": part.function_response.name,
                             "result": dict(part.function_response.response) if part.function_response.response else {},
                         })
+
+                # Text output — ONLY if no audio was sent (avoid duplicate with transcription)
+                if not has_audio_output:
+                    for part in event.content.parts:
+                        if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
+                            await websocket.send_json({
+                                "type": "text",
+                                "text": part.text,
+                            })
 
             # Handle turn complete
             if event.turn_complete:
@@ -407,84 +419,93 @@ async def _companion_upstream(
     try:
         while True:
             raw = await websocket.receive_text()
-            msg = json.loads(raw)
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                logger.warning("Companion upstream: invalid JSON from client, skipping")
+                continue
+
             msg_type = msg.get("type")
 
-            if msg_type == "audio":
-                audio_bytes = base64.b64decode(msg["data"])
-                blob = types.Blob(
-                    mime_type="audio/pcm;rate=16000",
-                    data=audio_bytes,
-                )
-                live_queue.send_realtime(blob)
+            try:
+                if msg_type == "audio":
+                    audio_bytes = base64.b64decode(msg["data"])
+                    blob = types.Blob(
+                        mime_type="audio/pcm;rate=16000",
+                        data=audio_bytes,
+                    )
+                    live_queue.send_realtime(blob)
 
-            elif msg_type == "image":
-                image_bytes = base64.b64decode(msg["data"])
-                blob = types.Blob(
-                    mime_type="image/jpeg",
-                    data=image_bytes,
-                )
-                live_queue.send_realtime(blob)
+                elif msg_type == "image":
+                    image_bytes = base64.b64decode(msg["data"])
+                    blob = types.Blob(
+                        mime_type="image/jpeg",
+                        data=image_bytes,
+                    )
+                    live_queue.send_realtime(blob)
 
-            elif msg_type == "text":
-                content = types.Content(
-                    role="user",
-                    parts=[types.Part(text=msg["text"])],
-                )
-                live_queue.send_content(content)
+                elif msg_type == "text":
+                    content = types.Content(
+                        role="user",
+                        parts=[types.Part(text=msg["text"])],
+                    )
+                    live_queue.send_content(content)
 
-            elif msg_type == "set_mode":
-                mode = msg.get("mode", "desk")
-                logger.info(f"Companion mode changed to: {mode} (session={session_id})")
-                # Inform the agent about mode change via system message
-                system_msg = types.Content(
-                    role="user",
-                    parts=[types.Part(text=(
-                        f"[SYSTEM] Mode changed to {mode.upper()}. "
-                        f"{'Focus on camera observation and field tools (record equipment, meters, flag issues, capture evidence).' if mode == 'field' else 'Focus on UI navigation, data lookup, and explanation. Use desk tools (navigate, highlight, filter, explain, show regulation, read summary) to help the user.'}"
-                    ))],
-                )
-                live_queue.send_content(system_msg)
-
-            elif msg_type == "screen_context":
-                page = msg.get("page", "unknown")
-                data = msg.get("data", {})
-                logger.info(f"Companion screen context: page={page} (session={session_id})")
-                # Send page context to agent as system message
-                context_parts = [f"[SYSTEM] User is now viewing: {page}"]
-                if data:
-                    context_parts.append(f"Page data: {json.dumps(data, default=str)}")
-                system_msg = types.Content(
-                    role="user",
-                    parts=[types.Part(text=" | ".join(context_parts))],
-                )
-                live_queue.send_content(system_msg)
-
-            elif msg_type == "set_case":
-                case_id = msg.get("case_id", "unknown")
-                logger.info(f"Companion case set to: {case_id} (session={session_id})")
-                # Update contextvars for tool functions
-                set_session_context(case_id, session_id)
-                # Update live session record
-                await fs.update_live_session(session_id, {"case_id": case_id})
-                # Inform the agent about the case change
-                case = await fs.get_case(case_id)
-                if case:
+                elif msg_type == "set_mode":
+                    mode = msg.get("mode", "desk")
+                    logger.info(f"Companion mode changed to: {mode} (session={session_id})")
+                    # Inform the agent about mode change via system message
                     system_msg = types.Content(
                         role="user",
                         parts=[types.Part(text=(
-                            f"[SYSTEM] Active case changed to {case_id}: "
-                            f"{case.company.name} ({case.status}), "
-                            f"domain={case.domain}, "
-                            f"address={case.company.address}"
+                            f"[SYSTEM] Mode changed to {mode.upper()}. "
+                            f"{'Focus on camera observation and field tools (record equipment, meters, flag issues, capture evidence).' if mode == 'field' else 'Focus on UI navigation, data lookup, and explanation. Use desk tools (navigate, highlight, filter, explain, show regulation, read summary) to help the user.'}"
                         ))],
                     )
-                else:
+                    live_queue.send_content(system_msg)
+
+                elif msg_type == "screen_context":
+                    page = msg.get("page", "unknown")
+                    data = msg.get("data", {})
+                    logger.info(f"Companion screen context: page={page} (session={session_id})")
+                    # Send page context to agent as system message
+                    context_parts = [f"[SYSTEM] User is now viewing: {page}"]
+                    if data:
+                        context_parts.append(f"Page data: {json.dumps(data, default=str)}")
                     system_msg = types.Content(
                         role="user",
-                        parts=[types.Part(text=f"[SYSTEM] Active case set to {case_id}.")],
+                        parts=[types.Part(text=" | ".join(context_parts))],
                     )
-                live_queue.send_content(system_msg)
+                    live_queue.send_content(system_msg)
+
+                elif msg_type == "set_case":
+                    case_id = msg.get("case_id", "unknown")
+                    logger.info(f"Companion case set to: {case_id} (session={session_id})")
+                    # Update contextvars for tool functions
+                    set_session_context(case_id, session_id)
+                    # Update live session record
+                    await fs.update_live_session(session_id, {"case_id": case_id})
+                    # Inform the agent about the case change
+                    case = await fs.get_case(case_id)
+                    if case:
+                        system_msg = types.Content(
+                            role="user",
+                            parts=[types.Part(text=(
+                                f"[SYSTEM] Active case changed to {case_id}: "
+                                f"{case.company.name} ({case.status}), "
+                                f"domain={case.domain}, "
+                                f"address={case.company.address}"
+                            ))],
+                        )
+                    else:
+                        system_msg = types.Content(
+                            role="user",
+                            parts=[types.Part(text=f"[SYSTEM] Active case set to {case_id}.")],
+                        )
+                    live_queue.send_content(system_msg)
+            except Exception as e:
+                logger.warning(f"Companion upstream: error processing message type={msg_type}: {e}")
+                continue
 
     except WebSocketDisconnect:
         logger.info(f"Companion upstream: client disconnected (session={session_id})")
@@ -545,20 +566,15 @@ async def _companion_downstream(
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
+                has_audio_output = False
                 for part in event.content.parts:
                     # Audio output
                     if part.inline_data and part.inline_data.data:
+                        has_audio_output = True
                         audio_b64 = base64.b64encode(part.inline_data.data).decode()
                         await websocket.send_json({
                             "type": "audio",
                             "data": audio_b64,
-                        })
-
-                    # Text output — skip thinking/reasoning parts
-                    if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
-                        await websocket.send_json({
-                            "type": "text",
-                            "text": part.text,
                         })
 
                     # Tool call (ADK handles execution automatically)
@@ -582,6 +598,15 @@ async def _companion_downstream(
                             ui_cmd = {"type": "ui_command"}
                             ui_cmd.update(result)
                             await websocket.send_json(ui_cmd)
+
+                # Text output — ONLY if no audio was sent (avoid duplicate with transcription)
+                if not has_audio_output:
+                    for part in event.content.parts:
+                        if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
+                            await websocket.send_json({
+                                "type": "text",
+                                "text": part.text,
+                            })
 
             # Handle turn complete
             if event.turn_complete:
@@ -608,14 +633,19 @@ async def _companion_downstream(
 import re
 
 _THINKING_PATTERNS = re.compile(
-    r"^\*\*[A-Z]|"           # **Bold Title at start (e.g., "**Defining AuditAI's Scope**")
-    r"^I'm focusing on|"     # "I'm focusing on..."
-    r"^I'm solidifying|"     # "I'm solidifying..."
-    r"^I'm aiming|"          # "I'm aiming..."
-    r"^My primary goal|"     # "My primary goal..."
-    r"^My current focus|"    # "My current focus..."
-    r"^I don't need any",    # "I don't need any special resources..."
-    re.MULTILINE
+    r"\*\*[A-Z][^*]*\*\*|"              # **Any Bold Title**
+    r"^I'm (focusing|solidifying|aiming|analyzing|checking|reviewing|assessing|examining|considering|planning|thinking|looking|trying)|"
+    r"^My (primary goal|current focus|aim|objective)|"
+    r"^I (should|need to|don't need|ought to|must|will now)|"
+    r"^Let me |"
+    r"^I'll (start|begin|try|focus|look|check|analyze)|"
+    r"^I want to |"
+    r"^I have to |"
+    r"^This (requires|means|suggests|indicates) |"
+    r"^First,? I |"
+    r"^Now I |"
+    r"^Okay,? (so |let me |I )",
+    re.MULTILINE | re.IGNORECASE
 )
 
 

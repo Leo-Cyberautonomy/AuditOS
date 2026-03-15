@@ -75,7 +75,7 @@ export class AudioManager {
    */
   playAudio(audioData: ArrayBuffer): void {
     try {
-      if (!this.playbackCtx) {
+      if (!this.playbackCtx || this.playbackCtx.state === "closed") {
         this.playbackCtx = new AudioContext({ sampleRate: 24000 });
         this.nextPlayTime = 0;
       }
@@ -95,6 +95,12 @@ export class AudioManager {
       // Schedule this chunk to play after the previous one finishes.
       // If we've fallen behind (nextPlayTime < currentTime), start now.
       const now = ctx.currentTime;
+
+      // If queue is more than 5 seconds ahead, reset (audio has fallen too far behind)
+      if (this.nextPlayTime - now > 5) {
+        this.nextPlayTime = now;
+      }
+
       const startAt = Math.max(now, this.nextPlayTime);
       source.start(startAt);
       this.nextPlayTime = startAt + buffer.duration;

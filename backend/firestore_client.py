@@ -33,7 +33,7 @@ async def init_firestore(project_id: str | None = None) -> AsyncClient:
 
     # Create a separate AsyncClient on the background loop
     future = asyncio.run_coroutine_threadsafe(_create_bg_client(), _bg_loop)
-    future.result(timeout=10)
+    future.result(timeout=30)
 
     return _db
 
@@ -67,5 +67,10 @@ def run_async(coro):
     """
     if _bg_loop is None:
         raise RuntimeError("Background loop not started. Call init_firestore() first.")
-    future = asyncio.run_coroutine_threadsafe(coro, _bg_loop)
-    return future.result(timeout=15)
+    try:
+        future = asyncio.run_coroutine_threadsafe(coro, _bg_loop)
+        return future.result(timeout=30)
+    except TimeoutError:
+        raise RuntimeError("Firestore operation timed out (30s)")
+    except Exception as e:
+        raise RuntimeError(f"Firestore operation failed: {e}")
