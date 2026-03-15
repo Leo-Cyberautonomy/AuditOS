@@ -592,6 +592,9 @@ def _build_companion_agent() -> Agent:
         explain_item,
         show_regulation,
         read_summary,
+        capture_screen,
+        read_page_content,
+        click_element,
     )
 
     COMPANION_INSTRUCTION = SYSTEM_INSTRUCTION + """
@@ -608,15 +611,26 @@ When in desk mode, you also act as the user's desktop assistant:
 - When navigating, always confirm what page you're taking the user to
 - When explaining items, read the details in a clear, professional tone
 
+VISUAL INTERACTION (when structured tools are not enough):
+- Use capture_screen to take a screenshot when you need to SEE what's on the page
+- Use read_page_content to get the text content when you need to READ the page
+- Use click_element to click buttons, links, or tabs by their visible text
+- STRATEGY: Try structured tools first (navigate_to, etc.). If no tool exists for
+  the user's request, use capture_screen to see the page, then click_element to act.
+- Examples:
+  - "Generate the report" → navigate_to("report"), then click_element("Generate Report", "button")
+  - "Export as PDF" → click_element("Export PDF", "button")
+  - "What does this page show?" → capture_screen or read_page_content, then describe what you see
+
 MODE SWITCHING:
 - In FIELD mode: focus on camera/audio observation and field tools
-- In DESK mode: focus on UI navigation, data lookup, and explanation tools
+- In DESK mode: focus on UI navigation, data lookup, explanation, and visual interaction tools
 - You may use field tools in desk mode if the user asks about standards or wants to flag something
 """
 
     return Agent(
         name="companion_agent",
-        description="Full-featured audit companion with field inspection and desktop UI control capabilities.",
+        description="Full-featured audit companion with field inspection, desktop UI control, and visual page interaction capabilities.",
         model="gemini-2.5-flash-native-audio-preview-12-2025",
         instruction=COMPANION_INSTRUCTION,
         tools=FIELD_TOOLS + [
@@ -626,6 +640,9 @@ MODE SWITCHING:
             explain_item,
             show_regulation,
             read_summary,
+            capture_screen,
+            read_page_content,
+            click_element,
         ],
     )
 

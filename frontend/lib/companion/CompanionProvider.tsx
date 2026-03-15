@@ -153,7 +153,13 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
               command: msg.action ?? msg.command ?? "",
               args: msg.args ?? msg,
             };
-            dispatchUICommand(uiCmd, router, activeCaseIdRef.current);
+            dispatchUICommand(
+              uiCmd,
+              router,
+              activeCaseIdRef.current,
+              sendImage,
+              sendTextRaw,
+            );
             break;
           }
 
@@ -203,6 +209,13 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
       const b64 = btoa(binary);
       ws.send(JSON.stringify({ type: "image", data: b64 }));
     });
+  }, []);
+
+  // Send text without adding to transcript (for system/tool responses)
+  const sendTextRaw = useCallback((text: string) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: "text", text }));
   }, []);
 
   const sendText = useCallback(

@@ -208,3 +208,47 @@ def read_summary(scope: str = "case", case_id: str | None = None) -> dict:
         "case_id": cid,
         "message": f"Summary for scope '{scope}' requested.",
     }
+
+
+def capture_screen() -> dict:
+    """Capture a screenshot of the current page the user is viewing.
+
+    Use this when you need to SEE what is on the user's screen to understand
+    the current context, read text, identify buttons, or decide what action to take.
+    The screenshot will be sent back to you as an image for visual analysis.
+    """
+    return {
+        "action": "capture_screen",
+        "message": "Requesting screenshot of the current page. Analyze the image to understand what the user sees.",
+    }
+
+
+def read_page_content() -> dict:
+    """Read the visible text content of the current page.
+
+    Use this when you need to know what text, data, or information is displayed
+    on the user's current page. Returns the page's visible text content.
+    """
+    return {
+        "action": "read_page_content",
+        "message": "Requesting page text content. Use the returned text to answer the user's question.",
+    }
+
+
+def click_element(element_text: str, element_type: str = "button") -> dict:
+    """Click an element on the current page by its visible text.
+
+    Use this when you need to interact with a button, link, or tab on the page
+    that doesn't have a dedicated tool function. For example, clicking "Generate Report",
+    "Export PDF", "Start Extraction", or any other UI button.
+
+    Args:
+        element_text: The visible text of the element to click (e.g., "Generate Report", "Export PDF").
+        element_type: Type of element — button, link, tab, or any. Defaults to button.
+    """
+    return {
+        "action": "click_element",
+        "element_text": element_text,
+        "element_type": element_type,
+        "message": f"Clicking {element_type} with text '{element_text}'.",
+    }
