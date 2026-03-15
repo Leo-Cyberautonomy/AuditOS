@@ -161,6 +161,8 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
             break;
 
           case "interrupted":
+            // User interrupted — clear queued audio so old speech stops
+            audioRef.current?.clearPlaybackQueue();
             break;
 
           case "error":

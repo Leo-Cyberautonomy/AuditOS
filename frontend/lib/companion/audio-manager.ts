@@ -14,6 +14,7 @@ export class AudioManager {
 
   /* ── Playback state ────────────────────────────────────────────────── */
   private playbackCtx: AudioContext | null = null;
+  private nextPlayTime = 0; // scheduled time for the next audio chunk
 
   /* ── Mute ───────────────────────────────────────────────────────────── */
   private _muted = false;
@@ -69,11 +70,14 @@ export class AudioManager {
 
   /**
    * Play a PCM int16 chunk at 24 kHz (Gemini output format).
+   * Chunks are queued sequentially so they play one after another
+   * instead of overlapping (which causes the "many voices" effect).
    */
   playAudio(audioData: ArrayBuffer): void {
     try {
       if (!this.playbackCtx) {
         this.playbackCtx = new AudioContext({ sampleRate: 24000 });
+        this.nextPlayTime = 0;
       }
       const ctx = this.playbackCtx;
       const int16 = new Int16Array(audioData);
@@ -83,13 +87,27 @@ export class AudioManager {
       }
       const buffer = ctx.createBuffer(1, float32.length, 24000);
       buffer.copyToChannel(float32, 0);
+
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
-      source.start();
+
+      // Schedule this chunk to play after the previous one finishes.
+      // If we've fallen behind (nextPlayTime < currentTime), start now.
+      const now = ctx.currentTime;
+      const startAt = Math.max(now, this.nextPlayTime);
+      source.start(startAt);
+      this.nextPlayTime = startAt + buffer.duration;
     } catch (e) {
       console.error("AudioManager playback error:", e);
     }
+  }
+
+  /**
+   * Stop all queued audio playback (e.g., when user interrupts).
+   */
+  clearPlaybackQueue(): void {
+    this.nextPlayTime = 0;
   }
 
   /* ── Teardown ───────────────────────────────────────────────────────── */
