@@ -348,7 +348,8 @@ async def _downstream(
                         })
 
                     # Text output (when not in audio mode)
-                    if part.text:
+                    # Skip thought/reasoning parts — only forward actual responses
+                    if part.text and not getattr(part, "thought", False):
                         await websocket.send_json({
                             "type": "text",
                             "text": part.text,
@@ -553,7 +554,8 @@ async def _companion_downstream(
                         })
 
                     # Text output (when not in audio mode)
-                    if part.text:
+                    # Skip thought/reasoning parts — only forward actual responses
+                    if part.text and not getattr(part, "thought", False):
                         await websocket.send_json({
                             "type": "text",
                             "text": part.text,
