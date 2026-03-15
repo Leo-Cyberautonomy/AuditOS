@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import {
@@ -239,6 +239,249 @@ const DESK_TOOLS: AiTool[] = [
 ];
 
 /* ------------------------------------------------------------------ */
+/*  Dot-matrix world map data                                          */
+/*  Each row is a string: '1' = land, '0' = water                     */
+/*  80 cols x 40 rows, rendered at 10px spacing = 800x400             */
+/* ------------------------------------------------------------------ */
+
+const WORLD_DOT_ROWS: string[] = [
+  //        0         1         2         3         4         5         6         7
+  //        0123456789012345678901234567890123456789012345678901234567890123456789012345678
+  /* 0 */ "00000000000000000000000000000000000000000000000000000000000001111100000000000000",
+  /* 1 */ "00000000000000001111000000000000000000000000001111100000000011111110000000000000",
+  /* 2 */ "00000000000001111111100000000000000000000000011111110000001111111111100000000000",
+  /* 3 */ "00000000000011111111110000000000000000000001111111111000011111111111110000000000",
+  /* 4 */ "00000000000111111111111000000000000000000011111111111100111111111111111000000000",
+  /* 5 */ "00000000001111111111111100000000000000000111111111111101111111111111111100000000",
+  /* 6 */ "00000000011111111111111100000000000000001111111111111111111111111111111110000000",
+  /* 7 */ "00000000011111111111111110000000000000000011111111111111111111111111111111000000",
+  /* 8 */ "00000000001111111111111110000000000000000001111111111111111111111111111111100000",
+  /* 9 */ "00000000000011111111111100000000000000000000111111111111111111111111111111100000",
+  /*10 */ "00000000000001111111111110000000000000000000011111111111011111111111111111000000",
+  /*11 */ "00000000000000111111111111000000000000000000011111111100001111111111111110000000",
+  /*12 */ "00000000000000011111111111100000000000000000001111111000000111111111111100000000",
+  /*13 */ "00000000000000001111111111110000000000000000001111110000000001111111111000011000",
+  /*14 */ "00000000000000000111111111111000000000000000000111100000000000111111100000011100",
+  /*15 */ "00000000000000000011111111111000000000000000000111000000000000001111000000001100",
+  /*16 */ "00000000000000000001111111111000000000000001111111000000000000000110000000000000",
+  /*17 */ "00000000000000000000111111111100000000000011111111110000000000000000000000000000",
+  /*18 */ "00000000000000000000011111111100000000000111111111111100000000000000000000000000",
+  /*19 */ "00000000000000000000001111111110000000001111111111111110000000000000000000000000",
+  /*20 */ "00000000000000000000011111111110000000011111111111111110000000000000000000000000",
+  /*21 */ "00000000000000000000011111111111000000111111111111111100000000000000000000000000",
+  /*22 */ "00000000000000000000001111111111100001111111111111111000000000000000000000000000",
+  /*23 */ "00000000000000000000001111111111100011111111111111110000000000000000000000000000",
+  /*24 */ "00000000000000000000000111111111110011111111111111100000000000000000000000000000",
+  /*25 */ "00000000000000000000000011111111111011111111111111000000000000000000000000000000",
+  /*26 */ "00000000000000000000000001111111110111111111111100000000000000000000000000000000",
+  /*27 */ "00000000000000000000000000111111110111111111111000000000000000000000000000000000",
+  /*28 */ "00000000000000000000000000011111100011111111100000000000000000000000000000000000",
+  /*29 */ "00000000000000000000000000001111000001111111000000000000000000000000001100000000",
+  /*30 */ "00000000000000000000000000000110000000111110000000000000000000000000111110000000",
+  /*31 */ "00000000000000000000000000000000000000011100000000000000000000000001111111000000",
+  /*32 */ "00000000000000000000000000000000000000001100000000000000000000000011111111100000",
+  /*33 */ "00000000000000000000000000000000000000000000000000000000000000000111111111100000",
+  /*34 */ "00000000000000000000000000000000000000000000000000000000000000000011111111000000",
+  /*35 */ "00000000000000000000000000000000000000000000000000000000000000000001111110000000",
+  /*36 */ "00000000000000000000000000000000000000000000000000000000000000000000111100000000",
+  /*37 */ "00000000000000000000000000000000000000000000000000000000000000000000011000000000",
+  /*38 */ "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  /*39 */ "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+];
+
+/* Region bounding boxes in grid coords [colMin, colMax, rowMin, rowMax] */
+const REGION_BOUNDS: Record<string, [number, number, number, number]> = {
+  us:    [8, 22, 3, 11],
+  eu:    [42, 56, 2, 11],
+  uk:    [40, 43, 2, 6],
+  japan: [69, 73, 4, 9],
+  intl:  [-1, -1, -1, -1], // special — no geographic bounds
+};
+
+const REGION_COLORS: Record<string, string> = {
+  us: "#3B82F6",
+  eu: "#22C55E",
+  uk: "#22C55E",
+  japan: "#F59E0B",
+};
+
+/* ------------------------------------------------------------------ */
+/*  Dot-matrix world map component                                     */
+/* ------------------------------------------------------------------ */
+
+function DotMatrixWorldMap() {
+  const dots = useMemo(() => {
+    const result: { col: number; row: number; region: string | null }[] = [];
+    for (let r = 0; r < WORLD_DOT_ROWS.length; r++) {
+      const row = WORLD_DOT_ROWS[r];
+      for (let c = 0; c < row.length; c++) {
+        if (row[c] === "1") {
+          let region: string | null = null;
+          for (const [key, [cMin, cMax, rMin, rMax]] of Object.entries(REGION_BOUNDS)) {
+            if (key === "intl") continue;
+            if (c >= cMin && c <= cMax && r >= rMin && r <= rMax) {
+              region = key;
+              break;
+            }
+          }
+          result.push({ col: c, row: r, region });
+        }
+      }
+    }
+    return result;
+  }, []);
+
+  const COLS = 80;
+  const ROWS = 40;
+  const SPACING = 10;
+  const DOT_R = 1.8;
+  const svgW = COLS * SPACING;
+  const svgH = ROWS * SPACING;
+
+  return (
+    <div
+      className="relative rounded-2xl overflow-hidden"
+      style={{
+        backgroundColor: "#FFFFFF",
+        border: "1px solid #F3F4F6",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        className="w-full"
+        style={{ display: "block" }}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {/* Subtle grid background */}
+        <defs>
+          <pattern id="dotgrid" width={SPACING} height={SPACING} patternUnits="userSpaceOnUse">
+            <circle cx={SPACING / 2} cy={SPACING / 2} r={0.5} fill="#E5E7EB" opacity={0.5} />
+          </pattern>
+        </defs>
+        <rect width={svgW} height={svgH} fill="url(#dotgrid)" />
+
+        {/* Land dots */}
+        {dots.map(({ col, row, region }) => {
+          const cx = col * SPACING + SPACING / 2;
+          const cy = row * SPACING + SPACING / 2;
+          const color = region ? REGION_COLORS[region] : "#CBD5E1";
+          const opacity = region ? 0.75 : 0.35;
+          const r = region ? DOT_R + 0.3 : DOT_R;
+          return (
+            <circle
+              key={`${col}-${row}`}
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill={color}
+              opacity={opacity}
+            />
+          );
+        })}
+
+        {/* Region label backgrounds + text */}
+        {REGIONS.filter((rg) => rg.id !== "intl").map((rg) => {
+          // Position labels near center of each region bounding box
+          const bounds = REGION_BOUNDS[rg.id];
+          if (!bounds) return null;
+          const [cMin, cMax, rMin, rMax] = bounds;
+          const lx = ((cMin + cMax) / 2) * SPACING + SPACING / 2;
+          const ly = rMax * SPACING + SPACING * 2.5;
+          return (
+            <g key={rg.id}>
+              {/* Background pill */}
+              <rect
+                x={lx - 34}
+                y={ly - 8}
+                width={68}
+                height={18}
+                rx={9}
+                fill="#FFFFFF"
+                stroke={rg.color}
+                strokeWidth={1}
+                opacity={0.95}
+              />
+              <text
+                x={lx}
+                y={ly + 4}
+                textAnchor="middle"
+                fontSize={9}
+                fontWeight={600}
+                fill={rg.color}
+                fontFamily="system-ui, -apple-system, sans-serif"
+              >
+                {rg.abbr} - {rg.count} stds
+              </text>
+            </g>
+          );
+        })}
+
+        {/* International label at bottom center */}
+        <g>
+          <rect
+            x={svgW / 2 - 42}
+            y={svgH - 32}
+            width={84}
+            height={20}
+            rx={10}
+            fill="#FFFFFF"
+            stroke="#A855F7"
+            strokeWidth={1}
+            opacity={0.95}
+          />
+          <text
+            x={svgW / 2}
+            y={svgH - 18}
+            textAnchor="middle"
+            fontSize={9}
+            fontWeight={600}
+            fill="#A855F7"
+            fontFamily="system-ui, -apple-system, sans-serif"
+          >
+            ISO Int&apos;l - 19 stds
+          </text>
+        </g>
+
+        {/* Pulse rings for highlighted regions */}
+        {REGIONS.filter((rg) => rg.id !== "intl").map((rg) => {
+          const bounds = REGION_BOUNDS[rg.id];
+          if (!bounds) return null;
+          const [cMin, cMax, rMin, rMax] = bounds;
+          const cx = ((cMin + cMax) / 2) * SPACING + SPACING / 2;
+          const cy = ((rMin + rMax) / 2) * SPACING + SPACING / 2;
+          return (
+            <circle
+              key={`pulse-${rg.id}`}
+              cx={cx}
+              cy={cy}
+              r={14}
+              fill="none"
+              stroke={rg.color}
+              strokeWidth={1.5}
+              opacity={0.3}
+            >
+              <animate
+                attributeName="r"
+                values="10;22;10"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0.4;0.05;0.4"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -262,101 +505,29 @@ function StatCard({
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 + index * 0.1, duration: 0.5 }}
-      className="relative rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm overflow-hidden"
+      className="relative rounded-xl overflow-hidden p-6"
       style={{
-        boxShadow: `0 0 40px ${color}10, inset 0 1px 0 rgba(255,255,255,0.05)`,
+        backgroundColor: "#FFFFFF",
+        border: "1px solid #F3F4F6",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
       }}
     >
       <div
-        className="absolute top-0 left-0 right-0 h-px"
-        style={{ background: `linear-gradient(90deg, transparent, ${color}60, transparent)` }}
+        className="absolute top-0 left-0 right-0 h-[2px]"
+        style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
       />
       <div className="flex items-center justify-between mb-3">
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: color + "1A" }}
+          style={{ backgroundColor: color + "14" }}
         >
           <Icon size={20} style={{ color }} />
         </div>
       </div>
-      <span ref={ref} className="text-4xl font-bold text-white tabular-nums">
+      <span ref={ref} className="text-4xl font-bold tabular-nums" style={{ color: "#0F1117" }}>
         {count}
       </span>
-      <p className="text-sm text-gray-400 mt-1 font-medium">{label}</p>
-    </motion.div>
-  );
-}
-
-function RegionBlob({
-  region,
-  index,
-}: {
-  region: (typeof REGIONS)[number];
-  index: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 0.3 + index * 0.12, duration: 0.6, ease: "easeOut" }}
-      className="absolute flex flex-col items-center"
-      style={{
-        left: region.x,
-        top: region.y,
-        transform: "translate(-50%, -50%)",
-      }}
-    >
-      {/* Outer glow */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: region.size * 1.8,
-          height: region.size * 1.8,
-          background: `radial-gradient(circle, ${region.color}15 0%, transparent 70%)`,
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-      />
-      {/* Inner pulse ring */}
-      <motion.div
-        className="absolute rounded-full border"
-        style={{
-          width: region.size,
-          height: region.size,
-          borderColor: region.color + "40",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-        }}
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.4, 0.1, 0.4],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: index * 0.3,
-        }}
-      />
-      {/* Core dot */}
-      <div
-        className="relative rounded-full z-10"
-        style={{
-          width: region.size * 0.5,
-          height: region.size * 0.5,
-          background: `radial-gradient(circle, ${region.color} 0%, ${region.color}80 60%, transparent 100%)`,
-          boxShadow: `0 0 20px ${region.color}60, 0 0 40px ${region.color}30`,
-        }}
-      />
-      {/* Label */}
-      <div className="relative z-10 mt-2 text-center">
-        <p className="text-xs font-bold text-white">{region.abbr}</p>
-        <p className="text-[10px] text-gray-400">
-          {region.count} std{region.count !== 1 ? "s" : ""}
-        </p>
-      </div>
+      <p className="text-sm mt-1 font-medium" style={{ color: "#6B7280" }}>{label}</p>
     </motion.div>
   );
 }
@@ -374,35 +545,45 @@ function DomainCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ delay: index * 0.06, duration: 0.45 }}
-      className="relative rounded-xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm group hover:border-white/20 hover:bg-white/[0.05] transition-all duration-300"
+      className="relative rounded-xl p-5 group transition-all duration-300"
       style={{
-        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.05)`,
+        backgroundColor: "#FFFFFF",
+        border: "1px solid #F3F4F6",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.1), 0 0 0 1px ${domain.color}30`;
+        e.currentTarget.style.borderColor = domain.color + "40";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)";
+        e.currentTarget.style.borderColor = "#F3F4F6";
       }}
     >
       <div
-        className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
         style={{
-          background: `linear-gradient(90deg, transparent, ${domain.color}60, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${domain.color}, transparent)`,
         }}
       />
 
       <div className="flex items-center gap-3 mb-4">
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: domain.color + "1A" }}
+          style={{ backgroundColor: domain.color + "14" }}
         >
           <domain.icon size={18} style={{ color: domain.color }} />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-white">{domain.name}</h3>
-          <p className="text-[11px] text-gray-500">{domain.equipment} equipment types</p>
+          <h3 className="text-sm font-semibold" style={{ color: "#0F1117" }}>{domain.name}</h3>
+          <p className="text-[11px]" style={{ color: "#9CA3AF" }}>{domain.equipment} equipment types</p>
         </div>
       </div>
 
       <div className="flex gap-3 mb-3">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: domain.color }} />
-          <span className="text-xs text-gray-300">
+          <span className="text-xs" style={{ color: "#374151" }}>
             {domain.tier1.length} detailed
           </span>
         </div>
@@ -411,7 +592,7 @@ function DomainCard({
             className="w-2 h-2 rounded-full"
             style={{ backgroundColor: domain.color + "60" }}
           />
-          <span className="text-xs text-gray-400">
+          <span className="text-xs" style={{ color: "#6B7280" }}>
             +{domain.tier2.length} knowledge
           </span>
         </div>
@@ -425,7 +606,7 @@ function DomainCard({
             style={{
               color: domain.color,
               borderColor: domain.color + "30",
-              backgroundColor: domain.color + "10",
+              backgroundColor: domain.color + "0A",
             }}
           >
             {std}
@@ -436,7 +617,7 @@ function DomainCard({
   );
 }
 
-function CoverageCell({ value, maxInRow }: { value: number; maxInRow: number }) {
+function CoverageCell({ value }: { value: number; maxInRow: number }) {
   const intensity =
     value === 0
       ? 0
@@ -453,11 +634,11 @@ function CoverageCell({ value, maxInRow }: { value: number; maxInRow: number }) 
         style={{
           backgroundColor:
             value === 0
-              ? "rgba(255,255,255,0.03)"
-              : `rgba(59, 130, 246, ${intensity * 0.35})`,
-          color: value === 0 ? "rgba(255,255,255,0.15)" : `rgba(255,255,255, ${0.5 + intensity * 0.5})`,
-          border: value === 0 ? "1px solid rgba(255,255,255,0.05)" : `1px solid rgba(59, 130, 246, ${intensity * 0.4})`,
-          boxShadow: value >= 4 ? "0 0 12px rgba(59,130,246,0.2)" : "none",
+              ? "#F9FAFB"
+              : `rgba(59, 130, 246, ${intensity * 0.15})`,
+          color: value === 0 ? "#D1D5DB" : `rgba(37, 99, 235, ${0.5 + intensity * 0.5})`,
+          border: value === 0 ? "1px solid #F3F4F6" : `1px solid rgba(59, 130, 246, ${intensity * 0.3})`,
+          boxShadow: value >= 4 ? "0 0 8px rgba(59,130,246,0.12)" : "none",
         }}
       >
         {value}
@@ -473,17 +654,30 @@ function ToolCard({ tool, index, accentColor }: { tool: AiTool; index: number; a
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-20px" }}
       transition={{ delay: index * 0.04, duration: 0.35 }}
-      className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 flex items-center gap-3 hover:border-white/15 hover:bg-white/[0.05] transition-all"
+      className="rounded-lg px-4 py-3 flex items-center gap-3 transition-all"
+      style={{
+        backgroundColor: "#FFFFFF",
+        border: "1px solid #F3F4F6",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = accentColor + "40";
+        e.currentTarget.style.boxShadow = `0 2px 8px ${accentColor}15`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "#F3F4F6";
+        e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)";
+      }}
     >
       <div
         className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
-        style={{ backgroundColor: accentColor + "15" }}
+        style={{ backgroundColor: accentColor + "10" }}
       >
         <tool.icon size={14} style={{ color: accentColor }} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-white truncate">{tool.name}</p>
-        <p className="text-[10px] text-gray-500 font-mono truncate">{tool.fn}</p>
+        <p className="text-xs font-semibold truncate" style={{ color: "#0F1117" }}>{tool.name}</p>
+        <p className="text-[10px] font-mono truncate" style={{ color: "#9CA3AF" }}>{tool.fn}</p>
       </div>
     </motion.div>
   );
@@ -498,16 +692,15 @@ export default function DashboardPage() {
     <div
       className="min-h-screen"
       style={{
-        backgroundColor: "#0A0A0F",
-        color: "#F5F5F5",
-        marginLeft: -0,
+        backgroundColor: "#FAFAFA",
+        color: "#0F1117",
       }}
     >
       {/* ── Section 1: Hero Stats Bar ────────────────────────────── */}
       <section className="relative overflow-hidden">
-        {/* Background glow */}
+        {/* Background gradient — subtle light wash */}
         <div
-          className="pointer-events-none absolute -top-32 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full opacity-20 blur-3xl"
+          className="pointer-events-none absolute -top-32 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full opacity-[0.06] blur-3xl"
           style={{
             background: "radial-gradient(circle, #3B82F6 0%, transparent 70%)",
           }}
@@ -520,10 +713,10 @@ export default function DashboardPage() {
             transition={{ duration: 0.5 }}
             className="mb-8 text-center"
           >
-            <h1 className="text-3xl font-bold text-white sm:text-4xl">
+            <h1 className="text-3xl font-bold sm:text-4xl" style={{ color: "#0F1117" }}>
               Platform Capabilities
             </h1>
-            <p className="mt-2 text-sm text-gray-400 max-w-xl mx-auto">
+            <p className="mt-2 text-sm max-w-xl mx-auto" style={{ color: "#6B7280" }}>
               Real-time AI-powered field inspections across 8 audit domains, backed by 55
               regulatory standards and 14 specialized AI tools.
             </p>
@@ -538,7 +731,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ── Section 2: World Coverage Map ────────────────────────── */}
-      <section className="border-t border-white/5 py-16">
+      <section className="py-16" style={{ borderTop: "1px solid #F3F4F6" }}>
         <div className="mx-auto max-w-6xl px-8">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -547,76 +740,31 @@ export default function DashboardPage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-10"
           >
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "#9CA3AF" }}>
               Global Regulatory Coverage
             </h2>
-            <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+            <p className="mt-2 text-2xl font-bold sm:text-3xl" style={{ color: "#0F1117" }}>
               21 standards with structured clause data
             </p>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm" style={{ color: "#6B7280" }}>
               55 total standards across 5 jurisdictions
             </p>
           </motion.div>
 
-          {/* Radar-style map */}
+          {/* Dot-matrix world map */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="relative rounded-2xl border border-white/10 overflow-hidden"
-            style={{
-              backgroundColor: "rgba(10, 10, 20, 0.8)",
-              height: 380,
-            }}
           >
-            {/* Grid background */}
-            <svg
-              className="absolute inset-0 w-full h-full opacity-[0.07]"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-
-            {/* Horizontal scan line */}
-            <motion.div
-              className="absolute left-0 right-0 h-px pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.3) 20%, rgba(59,130,246,0.5) 50%, rgba(59,130,246,0.3) 80%, transparent 100%)",
-              }}
-              animate={{ top: ["10%", "90%", "10%"] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            />
-
-            {/* Region blobs */}
-            {REGIONS.map((region, i) => (
-              <RegionBlob key={region.id} region={region} index={i} />
-            ))}
-
-            {/* Connection lines (subtle) */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.15 }}>
-              <line x1="18%" y1="38%" x2="44%" y2="24%" stroke="#ffffff" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="44%" y1="24%" x2="52%" y2="30%" stroke="#ffffff" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="52%" y1="30%" x2="82%" y2="36%" stroke="#ffffff" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="50%" y1="72%" x2="18%" y2="38%" stroke="#A855F7" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="50%" y1="72%" x2="52%" y2="30%" stroke="#A855F7" strokeWidth="0.5" strokeDasharray="4 4" />
-              <line x1="50%" y1="72%" x2="82%" y2="36%" stroke="#A855F7" strokeWidth="0.5" strokeDasharray="4 4" />
-            </svg>
+            <DotMatrixWorldMap />
           </motion.div>
         </div>
       </section>
 
       {/* ── Section 3: Domain Grid ───────────────────────────────── */}
-      <section
-        className="border-t border-white/5 py-16"
-        style={{ backgroundColor: "rgba(255,255,255,0.01)" }}
-      >
+      <section className="py-16" style={{ borderTop: "1px solid #F3F4F6" }}>
         <div className="mx-auto max-w-6xl px-8">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -625,13 +773,13 @@ export default function DashboardPage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-10"
           >
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "#9CA3AF" }}>
               Audit Domains
             </h2>
-            <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+            <p className="mt-2 text-2xl font-bold sm:text-3xl" style={{ color: "#0F1117" }}>
               Eight specialized inspection domains
             </p>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm" style={{ color: "#6B7280" }}>
               Each with dedicated equipment profiles, regulatory mappings, and AI prompts
             </p>
           </motion.div>
@@ -645,7 +793,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ── Section 4: Coverage Matrix ───────────────────────────── */}
-      <section className="border-t border-white/5 py-16">
+      <section className="py-16" style={{ borderTop: "1px solid #F3F4F6" }}>
         <div className="mx-auto max-w-6xl px-8">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -654,10 +802,10 @@ export default function DashboardPage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-10"
           >
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "#9CA3AF" }}>
               Coverage Matrix
             </h2>
-            <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+            <p className="mt-2 text-2xl font-bold sm:text-3xl" style={{ color: "#0F1117" }}>
               Standards by domain and jurisdiction
             </p>
           </motion.div>
@@ -667,24 +815,36 @@ export default function DashboardPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden backdrop-blur-sm"
+            className="rounded-xl overflow-hidden"
+            style={{
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #F3F4F6",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            }}
           >
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 w-48">
+                  <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
+                    <th
+                      className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider w-48"
+                      style={{ color: "#9CA3AF" }}
+                    >
                       Domain
                     </th>
                     {JURISDICTIONS.map((j) => (
                       <th
                         key={j}
-                        className="px-2 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 text-center"
+                        className="px-2 py-3 text-xs font-semibold uppercase tracking-wider text-center"
+                        style={{ color: "#9CA3AF" }}
                       >
                         {j === "Intl" ? "Int'l" : j}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 text-center">
+                    <th
+                      className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center"
+                      style={{ color: "#9CA3AF" }}
+                    >
                       Total
                     </th>
                   </tr>
@@ -697,12 +857,19 @@ export default function DashboardPage() {
                     return (
                       <tr
                         key={domain.slug}
-                        className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
+                        className="transition-colors"
+                        style={{ borderBottom: "1px solid #F9FAFB" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#F9FAFB";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
                       >
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2.5">
                             <domain.icon size={14} style={{ color: domain.color }} />
-                            <span className="text-sm font-medium text-gray-200">
+                            <span className="text-sm font-medium" style={{ color: "#374151" }}>
                               {domain.name}
                             </span>
                           </div>
@@ -711,15 +878,18 @@ export default function DashboardPage() {
                           <CoverageCell key={j} value={row[j]} maxInRow={maxVal} />
                         ))}
                         <td className="px-4 py-2.5 text-center">
-                          <span className="text-sm font-bold text-white">{total}</span>
+                          <span className="text-sm font-bold" style={{ color: "#0F1117" }}>{total}</span>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-white/10">
-                    <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <tr style={{ borderTop: "1px solid #F3F4F6" }}>
+                    <td
+                      className="px-4 py-3 text-xs font-semibold uppercase tracking-wider"
+                      style={{ color: "#9CA3AF" }}
+                    >
                       Total
                     </td>
                     {JURISDICTIONS.map((j) => {
@@ -729,12 +899,12 @@ export default function DashboardPage() {
                       );
                       return (
                         <td key={j} className="px-2 py-3 text-center">
-                          <span className="text-sm font-bold text-blue-400">{colTotal}</span>
+                          <span className="text-sm font-bold" style={{ color: "#3B82F6" }}>{colTotal}</span>
                         </td>
                       );
                     })}
                     <td className="px-4 py-3 text-center">
-                      <span className="text-sm font-bold text-blue-400">
+                      <span className="text-sm font-bold" style={{ color: "#3B82F6" }}>
                         {Object.values(COVERAGE).reduce(
                           (sum, row) => sum + Object.values(row).reduce((a, b) => a + b, 0),
                           0
@@ -750,26 +920,23 @@ export default function DashboardPage() {
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mt-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.15)" }} />
-              <span className="text-[11px] text-gray-500">1 standard</span>
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.1)" }} />
+              <span className="text-[11px]" style={{ color: "#9CA3AF" }}>1 standard</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(59,130,246,0.23)", border: "1px solid rgba(59,130,246,0.26)" }} />
-              <span className="text-[11px] text-gray-500">2-3 standards</span>
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)" }} />
+              <span className="text-[11px]" style={{ color: "#9CA3AF" }}>2-3 standards</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(59,130,246,0.35)", border: "1px solid rgba(59,130,246,0.4)" }} />
-              <span className="text-[11px] text-gray-500">4+ standards</span>
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.3)" }} />
+              <span className="text-[11px]" style={{ color: "#9CA3AF" }}>4+ standards</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* ── Section 5: AI Tools ──────────────────────────────────── */}
-      <section
-        className="border-t border-white/5 py-16"
-        style={{ backgroundColor: "rgba(255,255,255,0.01)" }}
-      >
+      <section className="py-16" style={{ borderTop: "1px solid #F3F4F6" }}>
         <div className="mx-auto max-w-6xl px-8">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -778,13 +945,13 @@ export default function DashboardPage() {
             transition={{ duration: 0.5 }}
             className="text-center mb-10"
           >
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "#9CA3AF" }}>
               AI Tool Suite
             </h2>
-            <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+            <p className="mt-2 text-2xl font-bold sm:text-3xl" style={{ color: "#0F1117" }}>
               14 specialized function-calling tools
             </p>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm" style={{ color: "#6B7280" }}>
               Gemini calls these tools automatically based on voice commands and visual context
             </p>
           </motion.div>
@@ -793,16 +960,26 @@ export default function DashboardPage() {
             {/* Field Tools */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-500/15">
-                  <Camera size={16} className="text-amber-400" />
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "#F59E0B14" }}
+                >
+                  <Camera size={16} style={{ color: "#F59E0B" }} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Field Tools</h3>
-                  <p className="text-[11px] text-gray-500">
+                  <h3 className="text-sm font-semibold" style={{ color: "#0F1117" }}>Field Tools</h3>
+                  <p className="text-[11px]" style={{ color: "#9CA3AF" }}>
                     Used during live inspection with camera
                   </p>
                 </div>
-                <span className="ml-auto text-xs font-medium text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-full px-2.5 py-0.5">
+                <span
+                  className="ml-auto text-xs font-medium rounded-full px-2.5 py-0.5"
+                  style={{
+                    color: "#D97706",
+                    backgroundColor: "#FEF3C7",
+                    border: "1px solid #FDE68A",
+                  }}
+                >
                   {FIELD_TOOLS.length} tools
                 </span>
               </div>
@@ -816,16 +993,26 @@ export default function DashboardPage() {
             {/* Desk Tools */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/15">
-                  <Mic size={16} className="text-blue-400" />
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "#3B82F614" }}
+                >
+                  <Mic size={16} style={{ color: "#3B82F6" }} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Desk Tools</h3>
-                  <p className="text-[11px] text-gray-500">
+                  <h3 className="text-sm font-semibold" style={{ color: "#0F1117" }}>Desk Tools</h3>
+                  <p className="text-[11px]" style={{ color: "#9CA3AF" }}>
                     Voice-controlled platform navigation
                   </p>
                 </div>
-                <span className="ml-auto text-xs font-medium text-blue-400 bg-blue-400/10 border border-blue-400/20 rounded-full px-2.5 py-0.5">
+                <span
+                  className="ml-auto text-xs font-medium rounded-full px-2.5 py-0.5"
+                  style={{
+                    color: "#2563EB",
+                    backgroundColor: "#DBEAFE",
+                    border: "1px solid #BFDBFE",
+                  }}
+                >
                   {DESK_TOOLS.length} tools
                 </span>
               </div>
@@ -840,7 +1027,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ── Section 6: Quick Actions ─────────────────────────────── */}
-      <section className="border-t border-white/5 py-16">
+      <section className="py-16" style={{ borderTop: "1px solid #F3F4F6" }}>
         <div className="mx-auto max-w-6xl px-8">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -849,26 +1036,33 @@ export default function DashboardPage() {
             transition={{ duration: 0.5 }}
             className="text-center"
           >
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
+            <h2 className="text-2xl font-bold sm:text-3xl" style={{ color: "#0F1117" }}>
               Ready to start?
             </h2>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm" style={{ color: "#6B7280" }}>
               Open an existing case or start a new live audit with your camera and voice.
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 href="/cases"
-                className="inline-flex items-center gap-2 rounded-lg px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40"
+                className="inline-flex items-center gap-2 rounded-lg px-7 py-3 text-sm font-semibold text-white transition-all hover:opacity-90"
                 style={{
                   background: "linear-gradient(135deg, #3B82F6, #2563EB)",
+                  boxShadow: "0 4px 14px rgba(59,130,246,0.3)",
                 }}
               >
                 View Cases <ArrowRight size={16} />
               </Link>
               <Link
                 href="/cases"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-7 py-3 text-sm font-semibold text-gray-300 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center gap-2 rounded-lg px-7 py-3 text-sm font-semibold transition-colors"
+                style={{
+                  border: "1px solid #E5E7EB",
+                  backgroundColor: "#FFFFFF",
+                  color: "#374151",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                }}
               >
                 Start Live Audit <ArrowRight size={16} />
               </Link>
