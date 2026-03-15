@@ -53,7 +53,9 @@ function WorldMapInner({ className }: { className?: string }) {
       }}
     >
       <ComposableMap
-        projectionConfig={{ scale: 150, center: [10, 10] }}
+        projectionConfig={{ scale: 180, center: [10, 5] }}
+        width={1010}
+        height={500}
         style={{ width: "100%", height: "auto" }}
       >
         <Geographies geography={GEO_URL}>
