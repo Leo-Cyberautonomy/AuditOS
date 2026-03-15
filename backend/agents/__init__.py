@@ -1,8 +1,13 @@
-"""AuditAI ADK Agents — Multi-agent architecture for energy auditing."""
+"""AuditAI ADK Agents.
 
-from agents.live_audit_agent import live_audit_agent
-from agents.report_agent import report_agent
-from agents.extraction_agent import extraction_agent
-from agents.root_agent import root_agent
+- live_audit_agent: Field inspection with voice + vision (used by /ws/live/)
+- companion_agent: Full platform companion with field + desk tools (used by /ws/companion/)
 
-__all__ = ["live_audit_agent", "report_agent", "extraction_agent", "root_agent"]
+Report generation and document extraction use direct Gemini API calls (genai.Client)
+rather than ADK agents, because they are one-shot batch operations, not persistent
+conversational agents.
+"""
+
+from agents.live_audit_agent import live_audit_agent, get_companion_agent
+
+__all__ = ["live_audit_agent", "get_companion_agent"]
