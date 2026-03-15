@@ -41,6 +41,7 @@ export interface Case {
   company: Company;
   auditor: Auditor;
   status: CaseStatus;
+  domain?: string;
   notes: string | null;
   created_at: string;
   updated_at: string;

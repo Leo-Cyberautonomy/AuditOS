@@ -31,6 +31,30 @@ const AUDIT_TYPES = [
   { value: "surveillance_audit", label: "Surveillance Audit" },
 ];
 
+const DOMAIN_COLORS: Record<string, string> = {
+  energy: "#F59E0B",
+  food_safety: "#22C55E",
+  workplace_safety: "#EF4444",
+  construction: "#8B5CF6",
+  environmental: "#10B981",
+  fire_safety: "#F97316",
+  manufacturing_qc: "#6366F1",
+  facility_management: "#14B8A6",
+};
+
+const DOMAIN_NAMES: Record<string, string> = {
+  energy: "Energy",
+  food_safety: "Food Safety",
+  workplace_safety: "Workplace Safety",
+  construction: "Construction",
+  environmental: "Environmental",
+  fire_safety: "Fire Safety",
+  manufacturing_qc: "Manufacturing QC",
+  facility_management: "Facility",
+};
+
+const ALL_DOMAINS = Object.keys(DOMAIN_NAMES);
+
 export default function CasesPage() {
   const { t, locale } = useT();
   const router = useRouter();
@@ -40,6 +64,7 @@ export default function CasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [domainFilter, setDomainFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Create-case modal state
@@ -107,15 +132,17 @@ export default function CasesPage() {
     loadCases();
   }, [loadCases]);
 
-  // Sort cases by updated_at desc
-  const sortedCases = [...cases].sort(
-    (a, b) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
+  // Filter by domain (client-side) and sort by updated_at desc
+  const sortedCases = [...cases]
+    .filter((c) => !domainFilter || c.domain === domainFilter)
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
 
   const SkeletonRow = () => (
     <tr>
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: 9 }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div
             className="h-4 rounded"
@@ -180,6 +207,24 @@ export default function CasesPage() {
             </option>
           ))}
         </select>
+        <select
+          value={domainFilter}
+          onChange={(e) => setDomainFilter(e.target.value)}
+          className="rounded-lg px-3 py-2 text-sm"
+          style={{
+            backgroundColor: "#FFFFFF",
+            border: "1px solid #E5E7EB",
+            color: "#0F1117",
+            minWidth: 180,
+          }}
+        >
+          <option value="">All Domains</option>
+          {ALL_DOMAINS.map((d) => (
+            <option key={d} value={d}>
+              {DOMAIN_NAMES[d]}
+            </option>
+          ))}
+        </select>
         <div style={{ width: 280 }}>
           <SearchInput
             value={searchQuery}
@@ -216,7 +261,7 @@ export default function CasesPage() {
             icon={FolderOpen}
             title={t.shared.noData}
             description={
-              statusFilter || searchQuery
+              statusFilter || domainFilter || searchQuery
                 ? t.cases.noResults
                 : undefined
             }
@@ -230,6 +275,7 @@ export default function CasesPage() {
                     t.cases.caseNumber,
                     t.cases.company,
                     t.cases.industry,
+                    "Domain",
                     "Status",
                     t.cases.auditor,
                     t.cases.progress,
@@ -291,6 +337,24 @@ export default function CasesPage() {
                           style={{ color: "#6B7280" }}
                         >
                           {c.company.industry}
+                        </td>
+                        <td className="px-4 py-3">
+                          {c.domain && DOMAIN_NAMES[c.domain] ? (
+                            <span
+                              className="inline-block text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
+                              style={{
+                                backgroundColor: `${DOMAIN_COLORS[c.domain] ?? "#6B7280"}20`,
+                                color: DOMAIN_COLORS[c.domain] ?? "#6B7280",
+                                border: `1px solid ${DOMAIN_COLORS[c.domain] ?? "#6B7280"}40`,
+                              }}
+                            >
+                              {DOMAIN_NAMES[c.domain]}
+                            </span>
+                          ) : (
+                            <span className="text-xs" style={{ color: "#9CA3AF" }}>
+                              —
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <StatusChip

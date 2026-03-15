@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -45,6 +46,16 @@ export function AppSidebar() {
     disconnect: disconnectCompanion,
   } = useCompanion();
 
+  const [caseCount, setCaseCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    fetch(`${API_BASE}/cases`)
+      .then((res) => res.json())
+      .then((data: unknown[]) => setCaseCount(data.length))
+      .catch(() => {});
+  }, []);
+
   // Extract caseId from URL path: /cases/{caseId}/...
   const caseIdFromUrl = (() => {
     const match = pathname.match(/^\/cases\/([^/]+)/);
@@ -66,7 +77,7 @@ export function AppSidebar() {
       href: "/cases",
       label: t.nav.allCases ?? "Alle Falle",
       icon: FolderOpen,
-      badge: 3,
+      badge: caseCount ?? undefined,
     },
   ];
 
@@ -85,19 +96,16 @@ export function AppSidebar() {
       href: `/cases/${caseId}/documents`,
       label: t.nav.documents ?? "Dokumente",
       icon: Upload,
-      badge: 8,
     },
     {
       href: `/cases/${caseId}/evidence`,
       label: t.nav.evidenceLedger ?? "Nachweisbuch",
       icon: BookOpen,
-      badge: 12,
     },
     {
       href: `/cases/${caseId}/review`,
       label: t.nav.reviewQueue ?? "Prufwarteschlange",
       icon: CheckCircle,
-      badge: 5,
     },
     {
       href: `/cases/${caseId}/analytics`,
