@@ -5,7 +5,8 @@ to the user. They are called by the ADK Agent and their results are forwarded
 to the frontend via WebSocket.
 """
 
-import store
+from firestore_client import run_async
+import store_firestore as fs
 from agents.live_audit_agent import _ctx_case_id, _ctx_session_id
 
 
@@ -31,7 +32,7 @@ def highlight_finding(finding_id: str) -> dict:
     Args:
         finding_id: The finding ID to highlight.
     """
-    finding = store.live_findings.get(finding_id)
+    finding = run_async(fs.get_live_finding(finding_id))
     detail = finding.data if finding else {}
     return {
         "action": "highlight_finding",
@@ -66,7 +67,7 @@ def explain_item(item_type: str, item_id: str) -> dict:
         item_id: ID of the item to explain.
     """
     if item_type == "finding":
-        item = store.live_findings.get(item_id)
+        item = run_async(fs.get_live_finding(item_id))
         if item:
             data = {
                 "type": item.type.value,
@@ -77,7 +78,7 @@ def explain_item(item_type: str, item_id: str) -> dict:
         else:
             data = {"error": "Finding not found"}
     elif item_type == "measure":
-        item = store.measures.get(item_id)
+        item = run_async(fs.get_measure(item_id))
         if item:
             data = {
                 "title": item.title,
@@ -89,7 +90,7 @@ def explain_item(item_type: str, item_id: str) -> dict:
         else:
             data = {"error": "Measure not found"}
     elif item_type == "case":
-        item = store.cases.get(item_id)
+        item = run_async(fs.get_case(item_id))
         if item:
             data = {
                 "company": item.company.name,
@@ -100,7 +101,7 @@ def explain_item(item_type: str, item_id: str) -> dict:
         else:
             data = {"error": "Case not found"}
     elif item_type == "ledger_entry":
-        item = store.ledger_entries.get(item_id)
+        item = run_async(fs.get_ledger_entry(item_id))
         if item:
             data = {
                 "month": item.month,
@@ -147,14 +148,14 @@ def read_summary(scope: str = "case", case_id: str | None = None) -> dict:
     cid = case_id or _ctx_case_id.get()
 
     if scope == "case":
-        case = store.cases.get(cid)
+        case = run_async(fs.get_case(cid))
         if not case:
             return {
                 "error": f"Case {cid} not found",
                 "message": "Could not find the specified case.",
             }
-        findings = [f for f in store.live_findings.values() if f.case_id == cid]
-        measures = [m for m in store.measures.values() if m.case_id == cid]
+        findings = run_async(fs.list_live_findings(case_id=cid))
+        measures = run_async(fs.list_measures(cid))
         return {
             "company": case.company.name,
             "status": case.status,
@@ -171,7 +172,7 @@ def read_summary(scope: str = "case", case_id: str | None = None) -> dict:
             "message": "Read this summary aloud to the user in a clear, professional tone.",
         }
     elif scope == "findings":
-        findings = [f for f in store.live_findings.values() if f.case_id == cid]
+        findings = run_async(fs.list_live_findings(case_id=cid))
         return {
             "findings": [
                 {
@@ -186,7 +187,7 @@ def read_summary(scope: str = "case", case_id: str | None = None) -> dict:
             "message": "Summarize these findings for the user, highlighting critical items first.",
         }
     elif scope == "measures":
-        measures = [m for m in store.measures.values() if m.case_id == cid]
+        measures = run_async(fs.list_measures(cid))
         return {
             "measures": [
                 {

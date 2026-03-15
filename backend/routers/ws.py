@@ -25,7 +25,8 @@ from google.adk.agents.live_request_queue import LiveRequestQueue
 from google.genai import types
 
 from agents.live_audit_agent import live_audit_agent, set_session_context, get_companion_agent
-import store
+import store_firestore as fs
+from store import now_iso
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ session_service = InMemorySessionService()
 APP_NAME = "auditai"
 
 
-# ─── Original field-only endpoint (unchanged) ──────────────────────────────
+# --- Original field-only endpoint (unchanged) ---
 
 @router.websocket("/live/{case_id}/{session_id}")
 async def live_audit_ws(websocket: WebSocket, case_id: str, session_id: str):
@@ -61,14 +62,16 @@ async def live_audit_ws(websocket: WebSocket, case_id: str, session_id: str):
     # Set session context for tool functions
     set_session_context(case_id, session_id)
 
-    # Ensure live session exists in store
-    if session_id not in store.live_sessions:
+    # Ensure live session exists in Firestore
+    existing = await fs.get_live_session(session_id)
+    if not existing:
         from models.live_session import LiveSession
-        store.live_sessions[session_id] = LiveSession(
+        session_obj = LiveSession(
             id=session_id,
             case_id=case_id,
-            started_at=store.now_iso(),
+            started_at=now_iso(),
         )
+        await fs.create_live_session(session_obj)
 
     try:
         # Create ADK session
@@ -134,16 +137,16 @@ async def live_audit_ws(websocket: WebSocket, case_id: str, session_id: str):
             pass
     finally:
         # End live session
-        live_session = store.live_sessions.get(session_id)
+        live_session = await fs.get_live_session(session_id)
         if live_session and not live_session.ended_at:
-            live_session.ended_at = store.now_iso()
+            await fs.update_live_session(session_id, {"ended_at": now_iso()})
         try:
             await websocket.close()
         except Exception:
             pass
 
 
-# ─── Companion endpoint (field + desk tools) ───────────────────────────────
+# --- Companion endpoint (field + desk tools) ---
 
 @router.websocket("/companion/{session_id}")
 async def companion_ws(websocket: WebSocket, session_id: str):
@@ -165,14 +168,16 @@ async def companion_ws(websocket: WebSocket, session_id: str):
     # Initialize with no case context — will be set dynamically via set_case
     set_session_context("unknown", session_id)
 
-    # Ensure live session exists in store (case_id will be updated via set_case)
-    if session_id not in store.live_sessions:
+    # Ensure live session exists in Firestore (case_id will be updated via set_case)
+    existing = await fs.get_live_session(session_id)
+    if not existing:
         from models.live_session import LiveSession
-        store.live_sessions[session_id] = LiveSession(
+        session_obj = LiveSession(
             id=session_id,
             case_id="unknown",
-            started_at=store.now_iso(),
+            started_at=now_iso(),
         )
+        await fs.create_live_session(session_obj)
 
     try:
         # Create ADK session
@@ -238,16 +243,16 @@ async def companion_ws(websocket: WebSocket, session_id: str):
         except Exception:
             pass
     finally:
-        live_session = store.live_sessions.get(session_id)
+        live_session = await fs.get_live_session(session_id)
         if live_session and not live_session.ended_at:
-            live_session.ended_at = store.now_iso()
+            await fs.update_live_session(session_id, {"ended_at": now_iso()})
         try:
             await websocket.close()
         except Exception:
             pass
 
 
-# ─── Original upstream/downstream (unchanged) ──────────────────────────────
+# --- Original upstream/downstream (unchanged) ---
 
 async def _upstream(websocket: WebSocket, live_queue: LiveRequestQueue):
     """Receive messages from frontend WebSocket, forward to ADK queue."""
@@ -319,7 +324,7 @@ async def _downstream(
                     "text": text,
                 })
                 # Save to session transcript
-                _save_transcript(session_id, "user", text)
+                await _save_transcript(session_id, "user", text)
 
             # Handle output transcription (model speech -> text)
             if event.output_transcription and event.output_transcription.text:
@@ -329,7 +334,7 @@ async def _downstream(
                     "role": "assistant",
                     "text": text,
                 })
-                _save_transcript(session_id, "assistant", text)
+                await _save_transcript(session_id, "assistant", text)
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
@@ -384,7 +389,7 @@ async def _downstream(
             pass
 
 
-# ─── Companion upstream/downstream ─────────────────────────────────────────
+# --- Companion upstream/downstream ---
 
 async def _companion_upstream(
     websocket: WebSocket,
@@ -460,11 +465,9 @@ async def _companion_upstream(
                 # Update contextvars for tool functions
                 set_session_context(case_id, session_id)
                 # Update live session record
-                live_session = store.live_sessions.get(session_id)
-                if live_session:
-                    live_session.case_id = case_id
+                await fs.update_live_session(session_id, {"case_id": case_id})
                 # Inform the agent about the case change
-                case = store.cases.get(case_id)
+                case = await fs.get_case(case_id)
                 if case:
                     system_msg = types.Content(
                         role="user",
@@ -526,7 +529,7 @@ async def _companion_downstream(
                     "role": "user",
                     "text": text,
                 })
-                _save_transcript(session_id, "user", text)
+                await _save_transcript(session_id, "user", text)
 
             # Handle output transcription (model speech -> text)
             if event.output_transcription and event.output_transcription.text:
@@ -536,7 +539,7 @@ async def _companion_downstream(
                     "role": "assistant",
                     "text": text,
                 })
-                _save_transcript(session_id, "assistant", text)
+                await _save_transcript(session_id, "assistant", text)
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
@@ -598,14 +601,12 @@ async def _companion_downstream(
             pass
 
 
-# ─── Shared helper ──────────────────────────────────────────────────────────
+# --- Shared helper ---
 
-def _save_transcript(session_id: str, role: str, text: str):
-    """Save transcript entry to live session."""
-    session = store.live_sessions.get(session_id)
-    if session:
-        session.transcript.append({
-            "role": role,
-            "text": text,
-            "timestamp": store.now_iso(),
-        })
+async def _save_transcript(session_id: str, role: str, text: str):
+    """Save transcript entry to live session in Firestore."""
+    await fs.append_transcript(session_id, {
+        "role": role,
+        "text": text,
+        "timestamp": now_iso(),
+    })

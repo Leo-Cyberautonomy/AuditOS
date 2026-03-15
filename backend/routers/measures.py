@@ -1,9 +1,8 @@
 """Measures CRUD router for AuditOS."""
 
 from fastapi import APIRouter, HTTPException
-from typing import Optional
 
-import store
+import store_firestore as fs
 from models import Measure
 
 router = APIRouter()
@@ -11,17 +10,19 @@ router = APIRouter()
 
 @router.get("", response_model=list[Measure])
 async def list_measures(case_id: str):
-    if case_id not in store.cases:
+    case = await fs.get_case(case_id)
+    if not case:
         raise HTTPException(404, f"Case {case_id} not found")
-    result = [m for m in store.measures.values() if m.case_id == case_id]
+    result = await fs.list_measures(case_id)
     return sorted(result, key=lambda m: m.measure_id)
 
 
 @router.get("/summary")
 async def measures_summary(case_id: str):
-    if case_id not in store.cases:
+    case = await fs.get_case(case_id)
+    if not case:
         raise HTTPException(404, f"Case {case_id} not found")
-    case_measures = [m for m in store.measures.values() if m.case_id == case_id]
+    case_measures = await fs.list_measures(case_id)
     if not case_measures:
         return {"count": 0, "total_savings_eur": 0, "total_investment_eur": 0, "avg_payback": 0}
     return {
@@ -34,7 +35,7 @@ async def measures_summary(case_id: str):
 
 @router.get("/{measure_id}", response_model=Measure)
 async def get_measure(case_id: str, measure_id: str):
-    m = store.measures.get(measure_id)
+    m = await fs.get_measure(measure_id)
     if not m or m.case_id != case_id:
         raise HTTPException(404, f"Measure {measure_id} not found in case {case_id}")
     return m

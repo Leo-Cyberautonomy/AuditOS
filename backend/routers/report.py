@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from google import genai
 
-import store as store_module
+import store_firestore as fs
 from services.audit_log_service import log_event
 
 load_dotenv()
@@ -201,14 +201,14 @@ async def stream_report(lang: str = "de"):
 
 @router.post("/case/{case_id}/stream")
 async def stream_case_report(case_id: str, lang: str = "de"):
-    """SSE: streams EN 16247-1 report using case data from store."""
-    case = store_module.cases.get(case_id)
+    """SSE: streams EN 16247-1 report using case data from Firestore."""
+    case = await fs.get_case(case_id)
     if not case:
         raise HTTPException(404, f"Case {case_id} not found")
 
-    # Build data dict from store
-    ledger = [e for e in store_module.ledger_entries.values() if e.case_id == case_id]
-    case_measures = [m for m in store_module.measures.values() if m.case_id == case_id]
+    # Build data dict from Firestore
+    ledger = await fs.list_ledger_entries(case_id)
+    case_measures = await fs.list_measures(case_id)
 
     # Build energy_data array for the prompt
     energy_data = []
@@ -331,7 +331,7 @@ async def stream_case_report(case_id: str, lang: str = "de"):
             yield f"data: {json.dumps({'done': True})}\n\n"
 
             # Log audit event
-            log_event("report_generated", case_id=case_id, detail=f"Auditbericht generiert ({lang})")
+            await log_event("report_generated", case_id=case_id, detail=f"Auditbericht generiert ({lang})")
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 

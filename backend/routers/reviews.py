@@ -3,7 +3,8 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 
-import store
+import store_firestore as fs
+from store import now_iso
 from models import ReviewItem, ReviewItemUpdate, BatchReviewAction
 from services.audit_log_service import log_event
 
@@ -17,15 +18,9 @@ async def list_reviews(
     status: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
 ):
-    result = list(store.review_items.values())
-    if case_id:
-        result = [r for r in result if r.case_id == case_id]
-    if priority:
-        result = [r for r in result if r.priority == priority]
-    if status:
-        result = [r for r in result if r.status == status]
-    if category:
-        result = [r for r in result if r.category == category]
+    result = await fs.list_review_items(
+        case_id=case_id, priority=priority, status=status, category=category
+    )
 
     # Sort by priority order
     priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -34,9 +29,7 @@ async def list_reviews(
 
 @router.get("/stats")
 async def review_stats(case_id: Optional[str] = Query(None)):
-    items = list(store.review_items.values())
-    if case_id:
-        items = [r for r in items if r.case_id == case_id]
+    items = await fs.list_review_items(case_id=case_id)
 
     total = len(items)
     pending = sum(1 for r in items if r.status == "pending")
@@ -61,7 +54,7 @@ async def review_stats(case_id: Optional[str] = Query(None)):
 
 @router.get("/{item_id}", response_model=ReviewItem)
 async def get_review(item_id: str):
-    item = store.review_items.get(item_id)
+    item = await fs.get_review_item(item_id)
     if not item:
         raise HTTPException(404, f"Review item {item_id} not found")
     return item
@@ -69,15 +62,16 @@ async def get_review(item_id: str):
 
 @router.patch("/{item_id}", response_model=ReviewItem)
 async def update_review(item_id: str, data: ReviewItemUpdate):
-    item = store.review_items.get(item_id)
+    item = await fs.get_review_item(item_id)
     if not item:
         raise HTTPException(404, f"Review item {item_id} not found")
 
+    updates: dict = {}
     if data.status is not None:
         old_status = item.status
-        item.status = data.status
+        updates["status"] = data.status
         if data.status in ("approved", "rejected", "deferred"):
-            item.resolved_at = store.now_iso()
+            updates["resolved_at"] = now_iso()
 
         action_map = {
             "approved": "review_approved",
@@ -85,7 +79,7 @@ async def update_review(item_id: str, data: ReviewItemUpdate):
             "deferred": "review_deferred",
         }
         if data.status in action_map:
-            log_event(
+            await log_event(
                 action_map[data.status],
                 case_id=item.case_id,
                 entity_type="review_item",
@@ -94,7 +88,10 @@ async def update_review(item_id: str, data: ReviewItemUpdate):
             )
 
     if data.reviewer_note is not None:
-        item.reviewer_note = data.reviewer_note
+        updates["reviewer_note"] = data.reviewer_note
+
+    if updates:
+        item = await fs.update_review_item(item_id, updates)
 
     return item
 
@@ -108,13 +105,15 @@ async def batch_review(data: BatchReviewAction):
         raise HTTPException(422, f"Invalid action: {data.action}")
 
     for item_id in data.item_ids:
-        item = store.review_items.get(item_id)
+        item = await fs.get_review_item(item_id)
         if not item:
             continue
-        item.status = new_status
-        item.resolved_at = store.now_iso()
+
+        updates = {"status": new_status, "resolved_at": now_iso()}
         if data.note:
-            item.reviewer_note = data.note
+            updates["reviewer_note"] = data.note
+
+        item = await fs.update_review_item(item_id, updates)
         updated.append(item)
 
         action_map = {
@@ -122,7 +121,7 @@ async def batch_review(data: BatchReviewAction):
             "rejected": "review_rejected",
             "deferred": "review_deferred",
         }
-        log_event(
+        await log_event(
             action_map[new_status],
             case_id=item.case_id,
             entity_type="review_item",

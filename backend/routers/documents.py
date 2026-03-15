@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-import store
+import store_firestore as fs
+from store import generate_id, now_iso, document_blobs
 from models import DocumentMeta, DocumentClassifyRequest, LedgerEntry
 from services.audit_log_service import log_event
 
@@ -192,35 +193,34 @@ async def _extract_file_content(content: bytes, fname: str, mime: str) -> tuple[
 
 @router.get("", response_model=list[DocumentMeta])
 async def list_documents(case_id: str, category: Optional[str] = Query(None)):
-    result = [d for d in store.documents.values() if d.case_id == case_id]
-    if category:
-        result = [d for d in result if d.category == category]
+    result = await fs.list_documents(case_id, category=category)
     return sorted(result, key=lambda d: d.uploaded_at, reverse=True)
 
 
 @router.post("", response_model=list[DocumentMeta])
 async def upload_documents(case_id: str, files: List[UploadFile] = File(...)):
     """Upload files and store metadata + raw content for later processing."""
-    if case_id not in store.cases:
+    case = await fs.get_case(case_id)
+    if not case:
         raise HTTPException(404, f"Case {case_id} not found")
 
     uploaded = []
     for f in files:
         content = await f.read()
         doc = DocumentMeta(
-            id=f"doc-{store.generate_id()}",
+            id=f"doc-{generate_id()}",
             case_id=case_id,
             filename=f.filename or "unknown",
             file_size=len(content),
             mime_type=f.content_type or "application/octet-stream",
             status="uploaded",
-            uploaded_at=store.now_iso(),
+            uploaded_at=now_iso(),
         )
-        store.documents[doc.id] = doc
+        await fs.create_document(doc)
         # Store raw content for processing
-        store.document_blobs[doc.id] = content
+        document_blobs[doc.id] = content
         uploaded.append(doc)
-        log_event(
+        await log_event(
             "document_uploaded",
             case_id=case_id,
             entity_type="document",
@@ -233,7 +233,7 @@ async def upload_documents(case_id: str, files: List[UploadFile] = File(...)):
 
 @router.get("/{doc_id}", response_model=DocumentMeta)
 async def get_document(case_id: str, doc_id: str):
-    doc = store.documents.get(doc_id)
+    doc = await fs.get_document(doc_id)
     if not doc or doc.case_id != case_id:
         raise HTTPException(404, f"Document {doc_id} not found in case {case_id}")
     return doc
@@ -241,13 +241,12 @@ async def get_document(case_id: str, doc_id: str):
 
 @router.patch("/{doc_id}/classify", response_model=DocumentMeta)
 async def classify_document(case_id: str, doc_id: str, data: DocumentClassifyRequest):
-    doc = store.documents.get(doc_id)
+    doc = await fs.get_document(doc_id)
     if not doc or doc.case_id != case_id:
         raise HTTPException(404, f"Document {doc_id} not found in case {case_id}")
 
-    doc.category = data.category
-    doc.category_confidence = 100  # Manual classification
-    log_event(
+    doc = await fs.update_document(doc_id, {"category": data.category, "category_confidence": 100})
+    await log_event(
         "document_classified",
         case_id=case_id,
         entity_type="document",
@@ -259,13 +258,13 @@ async def classify_document(case_id: str, doc_id: str, data: DocumentClassifyReq
 
 @router.delete("/{doc_id}")
 async def delete_document(case_id: str, doc_id: str):
-    doc = store.documents.get(doc_id)
+    doc = await fs.get_document(doc_id)
     if not doc or doc.case_id != case_id:
         raise HTTPException(404, f"Document {doc_id} not found in case {case_id}")
 
-    del store.documents[doc_id]
-    store.document_blobs.pop(doc_id, None)
-    log_event(
+    await fs.delete_document(doc_id)
+    document_blobs.pop(doc_id, None)
+    await log_event(
         "document_deleted",
         case_id=case_id,
         entity_type="document",
@@ -285,13 +284,14 @@ async def process_documents(case_id: str):
     1. Finds all 'uploaded' documents for this case
     2. Extracts text from each (image OCR, PDF, Excel, CSV)
     3. Sends combined text to Gemini for structured energy data extraction
-    4. Writes extracted LedgerEntry rows into the store
+    4. Writes extracted LedgerEntry rows into Firestore
     5. Updates document status to 'extracted'
     """
-    if case_id not in store.cases:
+    case = await fs.get_case(case_id)
+    if not case:
         raise HTTPException(404, f"Case {case_id} not found")
 
-    case_docs = [d for d in store.documents.values() if d.case_id == case_id]
+    case_docs = await fs.list_documents(case_id)
     unprocessed = [d for d in case_docs if d.status == "uploaded"]
     already_done = [d for d in case_docs if d.status == "extracted"]
 
@@ -307,7 +307,7 @@ async def process_documents(case_id: str):
 
         if n_new == 0:
             # No new files — just return current totals
-            entries = [e for e in store.ledger_entries.values() if e.case_id == case_id]
+            entries = await fs.list_ledger_entries(case_id)
             result = _build_totals_result(entries)
             yield f"data: {json.dumps({'type': 'ok', 'text': 'Keine neuen Dokumente zu verarbeiten'})}\n\n"
             yield f"data: {json.dumps({'type': 'done', 'result': result})}\n\n"
@@ -320,17 +320,17 @@ async def process_documents(case_id: str):
         for doc in unprocessed:
             yield f"data: {json.dumps({'type': 'info', 'text': f'{doc.filename}: Verarbeitung...'})}\n\n"
 
-            blob = store.document_blobs.get(doc.id)
+            blob = document_blobs.get(doc.id)
             if blob is None:
                 yield f"data: {json.dumps({'type': 'warn', 'text': f'{doc.filename}: Keine Datei-Daten verfügbar'})}\n\n"
                 continue
 
-            doc.status = "processing"
+            await fs.update_document(doc.id, {"status": "processing"})
             text, logs = await _extract_file_content(blob, doc.filename, doc.mime_type)
 
-            for log in logs:
+            for log_entry in logs:
                 await asyncio.sleep(0.15)
-                yield f"data: {json.dumps(log)}\n\n"
+                yield f"data: {json.dumps(log_entry)}\n\n"
 
             if text:
                 all_texts.append(f"=== DATEI: {doc.filename} ===\n{text}")
@@ -339,8 +339,8 @@ async def process_documents(case_id: str):
         if not all_texts:
             yield f"data: {json.dumps({'type': 'warn', 'text': 'Keine extrahierbaren Inhalte gefunden'})}\n\n"
             for doc in unprocessed:
-                doc.status = "error"
-            entries = [e for e in store.ledger_entries.values() if e.case_id == case_id]
+                await fs.update_document(doc.id, {"status": "error"})
+            entries = await fs.list_ledger_entries(case_id)
             result = _build_totals_result(entries)
             yield f"data: {json.dumps({'type': 'done', 'result': result})}\n\n"
             return
@@ -380,7 +380,7 @@ async def process_documents(case_id: str):
                 for carrier in ["strom", "gas", "fernwaerme"]:
                     value = row.get(f"{carrier}_kwh")
                     if value is not None and value > 0:
-                        entry_id = f"le-{store.generate_id()}"
+                        entry_id = f"le-{generate_id()}"
                         status = row.get("status", "confirmed")
                         # Map status
                         if status not in ("confirmed", "anomaly", "estimated", "missing"):
@@ -397,31 +397,28 @@ async def process_documents(case_id: str):
                             source_doc_id=doc_ids_processed[0] if doc_ids_processed else None,
                             confidence=85,
                             review_status="pending",
-                            created_at=store.now_iso(),
-                            updated_at=store.now_iso(),
+                            created_at=now_iso(),
+                            updated_at=now_iso(),
                         )
-                        store.ledger_entries[le.id] = le
+                        await fs.create_ledger_entry(le)
                         n_entries += 1
 
             yield f"data: {json.dumps({'type': 'ok', 'text': f'{n_entries} Ledger-Einträge aus {len(energy_data)} Monaten erstellt'})}\n\n"
 
             # Step 4: Update document status
             for doc_id in doc_ids_processed:
-                doc = store.documents.get(doc_id)
-                if doc:
-                    doc.status = "extracted"
-                    doc.extracted_fields_count = n_entries
+                await fs.update_document(doc_id, {"status": "extracted", "extracted_fields_count": n_entries})
 
             # Compute final totals from ledger
-            all_entries = [e for e in store.ledger_entries.values() if e.case_id == case_id]
+            all_entries = await fs.list_ledger_entries(case_id)
             result = _build_totals_result(all_entries)
 
             score = result["totals"]["readiness_score"]
-            yield f"data: {json.dumps({'type': 'ok', 'text': f'✓ Verarbeitung abgeschlossen — Datenbereitschaft: {score}%'})}\n\n"
+            yield f"data: {json.dumps({'type': 'ok', 'text': f'Verarbeitung abgeschlossen — Datenbereitschaft: {score}%'})}\n\n"
             await asyncio.sleep(0.1)
             yield f"data: {json.dumps({'type': 'done', 'result': result})}\n\n"
 
-            log_event(
+            await log_event(
                 "extraction_completed",
                 case_id=case_id,
                 detail=f"Gemini-Extraktion: {n_entries} Einträge aus {n_new} Dokument(en), Bereitschaft {score}%",
@@ -430,11 +427,9 @@ async def process_documents(case_id: str):
         except Exception as exc:
             # Mark docs as error
             for doc_id in doc_ids_processed:
-                doc = store.documents.get(doc_id)
-                if doc:
-                    doc.status = "error"
+                await fs.update_document(doc_id, {"status": "error"})
             yield f"data: {json.dumps({'type': 'error', 'text': f'KI-Extraktion fehlgeschlagen: {exc}'})}\n\n"
-            entries = [e for e in store.ledger_entries.values() if e.case_id == case_id]
+            entries = await fs.list_ledger_entries(case_id)
             result = _build_totals_result(entries)
             yield f"data: {json.dumps({'type': 'done', 'result': result})}\n\n"
 

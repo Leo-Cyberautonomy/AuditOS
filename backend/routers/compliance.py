@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
-import store as store_module
+import store_firestore as fs
 
 router = APIRouter()
 
@@ -156,25 +156,25 @@ async def prefill_compliance_form():
             "source": "AI-generated from measurement data — auditor confirmation required",
             "review_note": "Please review the top-3 priority measures and confirm the data",
         },
-        # Section 6: CO₂ Emissions
+        # Section 6: CO2 Emissions
         {
             "section": "§6",
             "key": "co2_electricity_kg",
-            "label": "CO₂ Equivalent — Electricity",
+            "label": "CO2 Equivalent — Electricity",
             "value": round(totals["strom_kwh"] * 0.233 / 1000, 1),
-            "unit": "t CO₂/year",
+            "unit": "t CO2/year",
             "status": "yellow",
-            "source": "Emission factor 0.233 kg CO₂/kWh (EU average 2024)",
+            "source": "Emission factor 0.233 kg CO2/kWh (EU average 2024)",
             "review_note": "Please verify with local grid emission factor",
         },
         {
             "section": "§6",
             "key": "co2_gas_kg",
-            "label": "CO₂ Equivalent — Natural Gas",
+            "label": "CO2 Equivalent — Natural Gas",
             "value": round(totals["gas_kwh"] * 0.201 / 1000, 1),
-            "unit": "t CO₂/year",
+            "unit": "t CO2/year",
             "status": "green",
-            "source": "Emission factor 0.201 kg CO₂/kWh (IPCC 2023)",
+            "source": "Emission factor 0.201 kg CO2/kWh (IPCC 2023)",
         },
         # Section 7: Auditor Information
         {
@@ -224,19 +224,19 @@ async def prefill_compliance_form():
 
 @router.get("/case/{case_id}/prefill")
 async def prefill_case_compliance_form(case_id: str):
-    """Returns pre-filled compliance form fields based on actual case data from store."""
-    case = store_module.cases.get(case_id)
+    """Returns pre-filled compliance form fields based on actual case data from Firestore."""
+    case = await fs.get_case(case_id)
     if not case:
         raise HTTPException(404, f"Case {case_id} not found")
 
     # Compute totals from ledger
-    ledger = [e for e in store_module.ledger_entries.values() if e.case_id == case_id]
+    ledger = await fs.list_ledger_entries(case_id)
     strom = sum(e.value_kwh or 0 for e in ledger if e.carrier == "strom")
     gas = sum(e.value_kwh or 0 for e in ledger if e.carrier == "gas")
     fw = sum(e.value_kwh or 0 for e in ledger if e.carrier == "fernwaerme")
     total = strom + gas + fw
 
-    case_measures = [m for m in store_module.measures.values() if m.case_id == case_id]
+    case_measures = await fs.list_measures(case_id)
     area = case.company.building_area_m2 or 1
     specific = round(total / area, 1)
 
@@ -256,7 +256,7 @@ async def prefill_case_compliance_form(case_id: str):
         {"section": "§2", "key": "total_kwh", "label": "Total Energy Consumption", "value": total, "unit": "kWh/year", "status": "green", "source": "Sum of all energy carriers"},
         # §3 Waste Heat
         {"section": "§3", "key": "waste_heat_lt40", "label": "Waste Heat Potential < 40°C", "value": 18500, "unit": "kWh/year", "status": "yellow", "source": "Estimated", "review_note": "On-site flue gas volume measurement recommended"},
-        {"section": "§3", "key": "waste_heat_40_100", "label": "Waste Heat Potential 40–100°C", "value": None, "unit": "kWh/year", "status": "red", "source": None, "review_note": "No measurement data available — steam condensate measurement required"},
+        {"section": "§3", "key": "waste_heat_40_100", "label": "Waste Heat Potential 40-100°C", "value": None, "unit": "kWh/year", "status": "red", "source": None, "review_note": "No measurement data available — steam condensate measurement required"},
         # §4 Building
         {"section": "§4", "key": "building_area_m2", "label": "Heated Floor Area", "value": case.company.building_area_m2, "unit": "m²", "status": "green", "source": "Company records"},
         {"section": "§4", "key": "specific_energy_kwh_m2", "label": "Specific Energy Demand", "value": specific, "unit": "kWh/m²·year", "status": "green", "source": "Calculated: total energy / floor area"},
@@ -273,9 +273,9 @@ async def prefill_case_compliance_form(case_id: str):
             "source": "AI-generated — confirmation required",
             "review_note": "Please review the measures",
         },
-        # §6 CO₂
-        {"section": "§6", "key": "co2_electricity_kg", "label": "CO₂ Equivalent — Electricity", "value": co2_strom, "unit": "t CO₂/year", "status": "yellow", "source": "Emission factor 0.233 kg CO₂/kWh (EU average 2024)", "review_note": "Please verify with local grid emission factor"},
-        {"section": "§6", "key": "co2_gas_kg", "label": "CO₂ Equivalent — Natural Gas", "value": co2_gas, "unit": "t CO₂/year", "status": "green", "source": "Emission factor 0.201 kg CO₂/kWh (IPCC 2023)"},
+        # §6 CO2
+        {"section": "§6", "key": "co2_electricity_kg", "label": "CO2 Equivalent — Electricity", "value": co2_strom, "unit": "t CO2/year", "status": "yellow", "source": "Emission factor 0.233 kg CO2/kWh (EU average 2024)", "review_note": "Please verify with local grid emission factor"},
+        {"section": "§6", "key": "co2_gas_kg", "label": "CO2 Equivalent — Natural Gas", "value": co2_gas, "unit": "t CO2/year", "status": "green", "source": "Emission factor 0.201 kg CO2/kWh (IPCC 2023)"},
         # §7 Auditor
         {"section": "§7", "key": "auditor_name", "label": "Auditor Name", "value": case.auditor.name, "status": "green", "source": "Auditor profile"},
         {"section": "§7", "key": "auditor_reg_number", "label": "Auditor Registration Number", "value": case.auditor.e_control_id, "status": "green", "source": "Auditor profile (ISO 50002 certified)"},

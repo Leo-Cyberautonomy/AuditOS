@@ -3,7 +3,8 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List
 
-import store
+import store_firestore as fs
+from store import generate_id, now_iso
 from models import LedgerEntry, LedgerEntryCreate, LedgerEntryUpdate, LedgerTotals
 from services.audit_log_service import log_event
 
@@ -18,15 +19,9 @@ async def list_ledger(
     month: Optional[str] = Query(None),
     review_status: Optional[str] = Query(None),
 ):
-    result = [e for e in store.ledger_entries.values() if e.case_id == case_id]
-    if carrier:
-        result = [e for e in result if e.carrier == carrier]
-    if status:
-        result = [e for e in result if e.status == status]
-    if month:
-        result = [e for e in result if e.month == month]
-    if review_status:
-        result = [e for e in result if e.review_status == review_status]
+    result = await fs.list_ledger_entries(
+        case_id, carrier=carrier, status=status, month=month, review_status=review_status
+    )
 
     # Sort by month order
     month_order = [
@@ -45,12 +40,13 @@ async def list_ledger(
 
 @router.post("", response_model=LedgerEntry)
 async def create_ledger_entry(case_id: str, data: LedgerEntryCreate):
-    if case_id not in store.cases:
+    case = await fs.get_case(case_id)
+    if not case:
         raise HTTPException(404, f"Case {case_id} not found")
 
-    now = store.now_iso()
+    now = now_iso()
     entry = LedgerEntry(
-        id=f"le-{store.generate_id()}",
+        id=f"le-{generate_id()}",
         case_id=case_id,
         month=data.month,
         carrier=data.carrier,
@@ -63,8 +59,8 @@ async def create_ledger_entry(case_id: str, data: LedgerEntryCreate):
         created_at=now,
         updated_at=now,
     )
-    store.ledger_entries[entry.id] = entry
-    log_event(
+    await fs.create_ledger_entry(entry)
+    await log_event(
         "ledger_entry_created",
         case_id=case_id,
         entity_type="ledger_entry",
@@ -76,7 +72,7 @@ async def create_ledger_entry(case_id: str, data: LedgerEntryCreate):
 
 @router.get("/summary", response_model=LedgerTotals)
 async def ledger_summary(case_id: str):
-    entries = [e for e in store.ledger_entries.values() if e.case_id == case_id]
+    entries = await fs.list_ledger_entries(case_id)
 
     strom = sum(e.value_kwh or 0 for e in entries if e.carrier == "strom")
     gas = sum(e.value_kwh or 0 for e in entries if e.carrier == "gas")
@@ -104,7 +100,7 @@ async def ledger_summary(case_id: str):
 
 @router.get("/{entry_id}", response_model=LedgerEntry)
 async def get_ledger_entry(case_id: str, entry_id: str):
-    entry = store.ledger_entries.get(entry_id)
+    entry = await fs.get_ledger_entry(entry_id)
     if not entry or entry.case_id != case_id:
         raise HTTPException(404, f"Ledger entry {entry_id} not found")
     return entry
@@ -112,21 +108,23 @@ async def get_ledger_entry(case_id: str, entry_id: str):
 
 @router.patch("/{entry_id}", response_model=LedgerEntry)
 async def update_ledger_entry(case_id: str, entry_id: str, data: LedgerEntryUpdate):
-    entry = store.ledger_entries.get(entry_id)
+    entry = await fs.get_ledger_entry(entry_id)
     if not entry or entry.case_id != case_id:
         raise HTTPException(404, f"Ledger entry {entry_id} not found")
 
+    updates: dict = {"updated_at": now_iso()}
     if data.value_kwh is not None:
-        entry.value_kwh = data.value_kwh
+        updates["value_kwh"] = data.value_kwh
     if data.status is not None:
-        entry.status = data.status
+        updates["status"] = data.status
     if data.note is not None:
-        entry.note = data.note
+        updates["note"] = data.note
     if data.review_status is not None:
-        entry.review_status = data.review_status
-    entry.updated_at = store.now_iso()
+        updates["review_status"] = data.review_status
 
-    log_event(
+    entry = await fs.update_ledger_entry(entry_id, updates)
+
+    await log_event(
         "ledger_entry_updated",
         case_id=case_id,
         entity_type="ledger_entry",
@@ -138,12 +136,12 @@ async def update_ledger_entry(case_id: str, entry_id: str, data: LedgerEntryUpda
 
 @router.delete("/{entry_id}")
 async def delete_ledger_entry(case_id: str, entry_id: str):
-    entry = store.ledger_entries.get(entry_id)
+    entry = await fs.get_ledger_entry(entry_id)
     if not entry or entry.case_id != case_id:
         raise HTTPException(404, f"Ledger entry {entry_id} not found")
 
-    del store.ledger_entries[entry_id]
-    log_event(
+    await fs.delete_ledger_entry(entry_id)
+    await log_event(
         "ledger_entry_deleted",
         case_id=case_id,
         entity_type="ledger_entry",
@@ -155,14 +153,15 @@ async def delete_ledger_entry(case_id: str, entry_id: str):
 
 @router.post("/bulk", response_model=list[LedgerEntry])
 async def bulk_create_ledger(case_id: str, entries: List[LedgerEntryCreate]):
-    if case_id not in store.cases:
+    case = await fs.get_case(case_id)
+    if not case:
         raise HTTPException(404, f"Case {case_id} not found")
 
+    now = now_iso()
     created = []
-    now = store.now_iso()
     for data in entries:
         entry = LedgerEntry(
-            id=f"le-{store.generate_id()}",
+            id=f"le-{generate_id()}",
             case_id=case_id,
             month=data.month,
             carrier=data.carrier,
@@ -175,10 +174,11 @@ async def bulk_create_ledger(case_id: str, entries: List[LedgerEntryCreate]):
             created_at=now,
             updated_at=now,
         )
-        store.ledger_entries[entry.id] = entry
         created.append(entry)
 
-    log_event(
+    await fs.create_ledger_entries_batch(created)
+
+    await log_event(
         "ledger_entry_created",
         case_id=case_id,
         detail=f"{len(created)} Einträge erstellt",
