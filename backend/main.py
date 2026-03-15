@@ -23,14 +23,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AuditAI API", version="0.2.0", lifespan=lifespan)
 
-_origins = ["http://localhost:3000"]
+_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+]
 _frontend_url = os.environ.get("FRONTEND_URL")
 if _frontend_url:
     _origins.append(_frontend_url)
+    # Also allow without trailing slash and vice versa
+    _origins.append(_frontend_url.rstrip("/"))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
+    allow_origin_regex=r"https://.*\.run\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
