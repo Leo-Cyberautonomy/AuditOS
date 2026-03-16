@@ -119,23 +119,19 @@ const STEPS = [
 const VOICE_EXAMPLES = [
   {
     command: "Go to Case 1 overview",
-    response: "AI calls navigate_to → browser jumps to /cases/CASE-001/overview",
+    response: "Voice-controlled page navigation",
   },
   {
-    command: "Show me only the critical findings",
-    response: "AI calls filter_findings(severity='critical') → UI updates, AI describes results",
+    command: "Show me critical findings",
+    response: "AI-driven data filtering",
   },
   {
     command: "Click Generate Report",
-    response: "AI calls click_element → button clicked, report streams via Gemini 3 Flash",
+    response: "Voice-triggered UI interaction",
   },
   {
-    command: "What does ISO 50001 say about energy baselines?",
-    response: "AI calls show_regulation → reads the relevant clause aloud from 55+ standards",
-  },
-  {
-    command: "Highlight that first finding",
-    response: "AI calls highlight_finding → scrolls to element, ring animation highlights it",
+    command: "What does ISO 50001 require?",
+    response: "Real-time standards lookup across 55+ regulations",
   },
 ] as const;
 
@@ -194,9 +190,9 @@ export default function LandingPage() {
           </p>
 
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-gray-400 sm:text-lg">
-            AuditAI is an AI companion that controls your entire audit application by voice —
-            navigating pages, clicking buttons, reading screens, filtering data, and generating
-            reports hands-free. Powered by Gemini Live API with 14 AI tools across 8 audit domains.
+            An AI companion that controls your entire audit platform by voice.
+            Bidirectional streaming via Google ADK + Gemini Native Audio.
+            14 tools. 8 domains. 55+ standards. Fully deployed on Google Cloud.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -282,7 +278,7 @@ export default function LandingPage() {
             Voice-Controlled Platform
           </h2>
           <p className="mt-2 text-center text-3xl font-bold text-white sm:text-4xl">
-            Just say it. AI does the rest.
+            Say it. AI does it.
           </p>
 
           <div className="mt-16 space-y-6">
