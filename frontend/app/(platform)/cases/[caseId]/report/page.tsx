@@ -621,7 +621,7 @@ export default function ReportPage() {
                     {t.report.readyTitle}
                   </p>
                   <p className="text-sm mt-1" style={{ color: "#6B7280" }}>
-                    Ada AI {t.report.readyDesc}
+                    {t.report.readyDesc}
                   </p>
                 </div>
                 <button

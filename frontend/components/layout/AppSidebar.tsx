@@ -192,12 +192,6 @@ export function AppSidebar() {
     >
       {/* ─── Logo header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
-        <img
-          src="/logo.png"
-          alt="AuditAI"
-          className="flex-shrink-0"
-          style={{ height: 30, width: "auto" }}
-        />
         <div className="flex-1">
           <span className="text-white text-sm font-semibold tracking-tight">AuditAI</span>
           <span
@@ -207,19 +201,6 @@ export function AppSidebar() {
             BETA &middot; v1.0
           </span>
         </div>
-        {/* Language toggle */}
-        <button
-          onClick={toggle}
-          className="text-[10px] font-bold px-2 py-1 rounded border transition-all"
-          style={{
-            borderColor: "#374151",
-            color: locale === "en" ? "#FCD34D" : "#6B7280",
-            backgroundColor: locale === "en" ? "#1E2D45" : "transparent",
-          }}
-          title={t.langToggleTitle}
-        >
-          {locale === "de" ? "EN" : "DE"}
-        </button>
         {/* AI Companion toggle */}
         <button
           onClick={() => {

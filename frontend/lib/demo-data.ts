@@ -10,7 +10,7 @@ export const DEMO_COMPANY = {
 };
 
 export const DEMO_AUDITOR = {
-  name: "Dr. Stefan Gruber",
+  name: "Dr. Leo Huang",
   e_control_id: "ISO-AUD-2025-0847",
   /** Alias for e_control_id — used in multi-domain contexts */
   cert_id: "ISO-AUD-2025-0847",
