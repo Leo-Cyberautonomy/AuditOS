@@ -126,10 +126,6 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     (raw: string) => {
       try {
         const msg = JSON.parse(raw);
-        // DEBUG: log every message from server to trace duplication
-        if (msg.type !== "audio") {
-          console.log("[WS MSG]", msg.type, msg.role || "", (msg.text || msg.name || "").slice(0, 60));
-        }
 
         switch (msg.type) {
           case "audio": {
