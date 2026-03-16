@@ -309,6 +309,7 @@ async def _downstream(
     session_id: str,
 ):
     """Receive events from ADK runner, forward to frontend WebSocket."""
+    _output_buffer = ""  # Accumulates output_transcription chunks per turn
     try:
         async for event in runner.run_live(
             session=session,
@@ -323,27 +324,25 @@ async def _downstream(
                 })
                 continue
 
-            # Handle input transcription (user speech -> text)
-            if event.input_transcription and event.input_transcription.text:
-                text = event.input_transcription.text
-                await websocket.send_json({
-                    "type": "transcript",
-                    "role": "user",
-                    "text": text,
-                })
-                # Save to session transcript
-                await _save_transcript(session_id, "user", text)
+            # ── Transcription handling (buffer design) ──
+            #
+            # Design: Transcription is a RECORD of what was said, not real-time
+            # captions. Users hear the audio in real-time; text appears once per
+            # turn as a complete message.
+            #
+            # Gemini sends output_transcription as streaming chunks + a final
+            # summary. We buffer ALL chunks and only send the complete text
+            # when turn_complete fires. This eliminates duplication by design.
+            #
+            # For input_transcription: only useful for VOICE input (mic).
+            # Text input is already shown by the frontend's sendText().
+            # We skip input_transcription entirely — if the user typed text,
+            # the frontend already displayed it. If they spoke, the transcription
+            # would duplicate with future voice support.
 
-            # Handle output transcription (model speech -> text)
+            # Buffer output transcription (don't send yet)
             if event.output_transcription and event.output_transcription.text:
-                text = event.output_transcription.text
-                if not _is_thinking_text(text):
-                    await websocket.send_json({
-                        "type": "transcript",
-                        "role": "assistant",
-                        "text": text,
-                    })
-                    await _save_transcript(session_id, "assistant", text)
+                _output_buffer += event.output_transcription.text
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
@@ -380,12 +379,24 @@ async def _downstream(
                 # get a text-only response with no audio AND no transcription.
                 # This should not happen in normal AUDIO mode operation.
 
-            # Handle turn complete
+            # Handle turn complete — flush transcription buffer
             if event.turn_complete:
+                if _output_buffer:
+                    # Filter thinking text from the complete response
+                    clean_text = _output_buffer.strip()
+                    if clean_text and not _is_thinking_text(clean_text):
+                        await websocket.send_json({
+                            "type": "transcript",
+                            "role": "assistant",
+                            "text": clean_text,
+                        })
+                        await _save_transcript(session_id, "assistant", clean_text)
+                    _output_buffer = ""
                 await websocket.send_json({"type": "turn_complete"})
 
             # Handle interrupted
             if event.interrupted:
+                _output_buffer = ""  # Discard partial transcription on barge-in
                 await websocket.send_json({"type": "interrupted"})
 
     except WebSocketDisconnect:
@@ -527,6 +538,7 @@ async def _companion_downstream(
     contains an "action" key, a separate ui_command message is sent to the
     frontend so it can execute the UI action.
     """
+    _output_buffer = ""  # Accumulates output_transcription chunks per turn
     try:
         async for event in runner.run_live(
             session=session,
@@ -552,15 +564,29 @@ async def _companion_downstream(
                 await _save_transcript(session_id, "user", text)
 
             # Handle output transcription (model speech -> text)
+            # Gemini sends streaming chunks (short) then a final summary (long).
+            # We only forward the streaming chunks. The final summary is detected
+            # by being significantly longer than previous chunks and is skipped
+            # to prevent text duplication.
             if event.output_transcription and event.output_transcription.text:
                 text = event.output_transcription.text
                 if not _is_thinking_text(text):
-                    await websocket.send_json({
-                        "type": "transcript",
-                        "role": "assistant",
-                        "text": text,
-                    })
-                    await _save_transcript(session_id, "assistant", text)
+                    # Skip the final "summary" transcription that duplicates all chunks
+                    if len(text) > 40 and transcription_char_count > 20 and len(text) > transcription_char_count * 0.5:
+                        # This is likely the final summary — skip it
+                        pass
+                    else:
+                        transcription_char_count += len(text)
+                        await websocket.send_json({
+                            "type": "transcript",
+                            "role": "assistant",
+                            "text": text,
+                        })
+                        await _save_transcript(session_id, "assistant", text)
+
+            # Reset transcription counter on turn_complete
+            if event.turn_complete:
+                transcription_char_count = 0
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
@@ -604,12 +630,24 @@ async def _companion_downstream(
                 # get a text-only response with no audio AND no transcription.
                 # This should not happen in normal AUDIO mode operation.
 
-            # Handle turn complete
+            # Handle turn complete — flush transcription buffer
             if event.turn_complete:
+                if _output_buffer:
+                    # Filter thinking text from the complete response
+                    clean_text = _output_buffer.strip()
+                    if clean_text and not _is_thinking_text(clean_text):
+                        await websocket.send_json({
+                            "type": "transcript",
+                            "role": "assistant",
+                            "text": clean_text,
+                        })
+                        await _save_transcript(session_id, "assistant", clean_text)
+                    _output_buffer = ""
                 await websocket.send_json({"type": "turn_complete"})
 
             # Handle interrupted
             if event.interrupted:
+                _output_buffer = ""  # Discard partial transcription on barge-in
                 await websocket.send_json({"type": "interrupted"})
 
     except WebSocketDisconnect:
