@@ -43,11 +43,20 @@ def _resolve_case_id(raw: str) -> str:
 def navigate_to(page: str, case_id: str | None = None) -> dict:
     """Navigate the user's browser to a specific page in AuditAI.
 
+    IMPORTANT ROUTING RULES:
+    - Global pages (NO case_id needed): "dashboard", "cases"
+    - Case-specific pages (REQUIRE case_id): "overview", "live-audit", "documents",
+      "evidence", "review", "analytics", "measures", "report", "compliance",
+      "exports", "audit-log"
+    - When the user says "go to case 1 overview", you MUST pass case_id="CASE-001"
+      AND page="overview". Do NOT use page="dashboard" for case overviews.
+
     Args:
-        page: Target page -- dashboard, cases, live-audit, documents, evidence,
+        page: Target page name. Use "overview" for case overview, "dashboard" for
+              the global dashboard. Other case pages: live-audit, documents, evidence,
               review, analytics, measures, report, compliance, exports, audit-log.
-        case_id: Case ID, required for case-specific pages. Use the exact ID
-                 format from the cases list (e.g. "CASE-001", not "case_001").
+        case_id: Case ID. REQUIRED for all pages except "dashboard" and "cases".
+                 You can use fuzzy formats like "case 1" or "001" — they will be resolved.
     """
     raw_id = case_id or _ctx_case_id.get()
     resolved_id = _resolve_case_id(raw_id) if raw_id and raw_id != "unknown" else raw_id
@@ -55,7 +64,7 @@ def navigate_to(page: str, case_id: str | None = None) -> dict:
         "action": "navigate_to",
         "page": page,
         "case_id": resolved_id,
-        "message": f"Navigating to {page}",
+        "message": f"Navigating to {page}" + (f" for {resolved_id}" if resolved_id else ""),
     }
 
 
@@ -80,15 +89,57 @@ def filter_findings(
 ) -> dict:
     """Filter the findings list displayed in the UI.
 
+    Also returns the actual matching findings data so you know exactly what
+    the user will see after filtering. Use this data to describe the results.
+
     Args:
         severity: Filter by severity -- critical, high, medium, low. None for all.
         finding_type: Filter by type -- equipment, meter_reading, issue, evidence. None for all.
     """
+    # Query actual data so the AI can describe results accurately
+    cid = _ctx_case_id.get()
+    findings = run_async(fs.list_live_findings(case_id=cid)) if cid and cid != "unknown" else []
+
+    # Also check review_items (pre-seeded demo data) which may have severity
+    review_items = run_async(fs.list_review_items(cid)) if cid and cid != "unknown" else []
+
+    # Filter live findings
+    filtered = []
+    for f in findings:
+        if severity and f.data.get("severity") != severity:
+            continue
+        if finding_type and f.type.value != finding_type:
+            continue
+        filtered.append({
+            "id": f.id,
+            "type": f.type.value,
+            "data": f.data,
+        })
+
+    # Filter review items (these appear on the review page)
+    # ReviewItem uses "priority" (critical/high/medium/low) which maps to severity
+    filtered_reviews = []
+    for r in review_items:
+        r_priority = r.priority if hasattr(r, "priority") else None
+        if severity and r_priority and r_priority != severity:
+            continue
+        filtered_reviews.append({
+            "id": r.id,
+            "title": r.title,
+            "priority": r_priority,
+            "category": r.category if hasattr(r, "category") else None,
+            "status": r.status if hasattr(r, "status") else None,
+        })
+
     return {
         "action": "filter_findings",
         "severity": severity,
         "type": finding_type,
-        "message": f"Filtering: severity={severity}, type={finding_type}",
+        "matching_findings": filtered,
+        "matching_review_items": filtered_reviews,
+        "total_findings": len(filtered),
+        "total_review_items": len(filtered_reviews),
+        "message": f"Filtered to {len(filtered)} findings and {len(filtered_reviews)} review items. Describe these results to the user.",
     }
 
 

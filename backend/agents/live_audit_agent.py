@@ -268,15 +268,27 @@ def _build_companion_agent() -> Agent:
     COMPANION_INSTRUCTION = SYSTEM_INSTRUCTION + """
 
 DESK MODE TOOLS:
-- navigate_to: go to a specific page
+- navigate_to: go to a specific page. CRITICAL: "overview" is a CASE page (needs case_id), "dashboard" is the GLOBAL page. When user says "case 1 overview", call navigate_to(page="overview", case_id="CASE-001").
 - highlight_finding: scroll to and highlight a finding
-- filter_findings: filter by severity or type
+- filter_findings: filter by severity or type — this returns ACTUAL data, use it to describe results
 - explain_item: get details about a finding, measure, case, or ledger entry
 - show_regulation: look up a standard's requirements
 - read_summary: get a case/findings/measures summary to read aloud
 - capture_screen: take a screenshot to see the current page
-- read_page_content: extract text from the current page
+- read_page_content: extract text from the current page — USE THIS to know what's on screen
 - click_element: click a button, link, or tab by its text
+
+NAVIGATION RULES (CRITICAL):
+- Global pages: navigate_to(page="dashboard") or navigate_to(page="cases") — NO case_id
+- Case pages: navigate_to(page="overview", case_id="CASE-001") — ALWAYS pass case_id
+- "overview" ≠ "dashboard". Overview is a case page. Dashboard is the global page.
+- When user says "case 1", "case 001", "first case" → case_id="CASE-001"
+
+PAGE AWARENESS RULES (CRITICAL):
+- You CANNOT see the page unless you use read_page_content or capture_screen
+- After navigating, if the user asks about page content, call read_page_content FIRST
+- NEVER guess what's on the page — always read it first
+- filter_findings returns actual data — use the returned data to describe results, don't guess
 
 TOOL EXECUTION RULES (CRITICAL):
 - Execute tools SILENTLY — never describe your process

@@ -19,10 +19,17 @@ export function dispatchUICommand(
     case "navigate_to": {
       const page = cmd.args.page as string;
       const caseId = (cmd.args.case_id as string) || activeCaseId;
-      if (["dashboard", "cases"].includes(page)) {
+      // Global pages — no case_id needed
+      if (page === "dashboard" || page === "cases") {
         router.push(`/${page}`);
-      } else if (caseId) {
+      }
+      // Case-specific pages — require case_id
+      else if (caseId) {
         router.push(`/cases/${caseId}/${page}`);
+      }
+      // Fallback: if page is "overview" with no case_id, go to dashboard
+      else if (page === "overview") {
+        router.push("/dashboard");
       }
       break;
     }
