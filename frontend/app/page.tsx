@@ -89,28 +89,28 @@ const DOMAINS = [
 const STEPS = [
   {
     number: "01",
-    label: "Talk",
-    icon: Mic,
+    label: "Navigate",
+    icon: MessageSquare,
     description:
-      "Describe what you see, ask questions about standards, get real-time guidance",
+      "Say \"go to case 1 overview\" — AI navigates pages, clicks buttons, filters views, all by voice",
     accent: "from-blue-500 to-blue-600",
     glow: "bg-blue-500/20",
   },
   {
     number: "02",
-    label: "See",
+    label: "Inspect",
     icon: Eye,
     description:
-      "AI reads equipment nameplates, spots defects, identifies violations through your camera",
+      "Point your camera at equipment — AI identifies, records findings, and queries standards hands-free",
     accent: "from-amber-500 to-amber-600",
     glow: "bg-amber-500/20",
   },
   {
     number: "03",
-    label: "Act",
-    icon: MessageSquare,
+    label: "Report",
+    icon: Mic,
     description:
-      "Findings recorded automatically via function calling, reports generated from evidence",
+      "AI generates standards-compliant reports with evidence anchors, confidence scores, and source citations",
     accent: "from-emerald-500 to-emerald-600",
     glow: "bg-emerald-500/20",
   },
@@ -118,24 +118,35 @@ const STEPS = [
 
 const VOICE_EXAMPLES = [
   {
-    command: "Show me the critical findings",
-    response: "AI navigates to evidence page, highlights critical items",
+    command: "Go to Case 1 overview",
+    response: "AI calls navigate_to → browser jumps to /cases/CASE-001/overview",
   },
   {
-    command: "What regulation applies here?",
-    response: "AI cites OSHA 1910.147 or HACCP critical limits",
+    command: "Show me only the critical findings",
+    response: "AI calls filter_findings(severity='critical') → UI updates, AI describes results",
   },
   {
-    command: "Read me the audit summary",
-    response: "AI speaks the executive summary aloud",
+    command: "Click Generate Report",
+    response: "AI calls click_element → button clicked, report streams via Gemini 3 Flash",
+  },
+  {
+    command: "What does ISO 50001 say about energy baselines?",
+    response: "AI calls show_regulation → reads the relevant clause aloud from 55+ standards",
+  },
+  {
+    command: "Highlight that first finding",
+    response: "AI calls highlight_finding → scrolls to element, ring animation highlights it",
   },
 ] as const;
 
 const TECH_BADGES = [
   "Google ADK",
-  "Gemini 2.5 Flash",
+  "Gemini 2.5 Flash Native Audio",
+  "Gemini 3 Flash",
   "Cloud Run",
   "Cloud Firestore",
+  "Bidirectional Streaming",
+  "14 AI Tools via Function Calling",
   "Next.js",
   "FastAPI",
 ] as const;
@@ -175,17 +186,17 @@ export default function LandingPage() {
           </div>
 
           <h1 className="text-5xl font-extrabold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl">
-            Your AI Field Inspector
+            Voice-Controlled<br />Audit Platform
           </h1>
 
           <p className="mt-4 text-xl font-semibold tracking-wide" style={{ color: "#F59E0B" }}>
-            See everything. Miss nothing.
+            Navigate. Inspect. Report. All by voice.
           </p>
 
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-gray-400 sm:text-lg">
-            Talk to your AI co-pilot during field inspections. It sees through your camera,
-            records findings hands-free, navigates the platform by voice, and generates
-            compliance-ready reports.
+            AuditAI is an AI companion that controls your entire audit application by voice —
+            navigating pages, clicking buttons, reading screens, filtering data, and generating
+            reports hands-free. Powered by Gemini Live API with 14 AI tools across 8 audit domains.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -213,7 +224,7 @@ export default function LandingPage() {
             How It Works
           </h2>
           <p className="mt-2 text-center text-3xl font-bold text-white sm:text-4xl">
-            Three steps. Hands-free.
+            Navigate. Inspect. Report.
           </p>
 
           <div className="mt-16 grid gap-8 sm:grid-cols-3">
