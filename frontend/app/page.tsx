@@ -316,23 +316,24 @@ export default function LandingPage() {
           {/* Text-based architecture diagram */}
           <div className="mx-auto mt-14 max-w-3xl overflow-x-auto rounded-xl border border-white/10 bg-[#0D0D14] p-8 font-mono text-sm leading-loose text-gray-300">
             <pre className="whitespace-pre text-center">{`
-┌─────────────┐     WebSocket      ┌─────────────┐
-│             │ ◄────────────────► │             │
-│   Next.js   │    Audio + Video   │   FastAPI   │
-│  Frontend   │    JSON messages   │   Backend   │
-│             │                    │             │
+┌─────────────┐     WebSocket      ┌─────────────┐     Async CRUD     ┌─────────────┐
+│             │ ◄────────────────► │             │ ◄───────────────► │   Cloud     │
+│   Next.js   │    Audio + Video   │   FastAPI   │    9 Collections   │  Firestore  │
+│  Frontend   │    UI Commands     │   Backend   │                    │             │
+│             │                    │             │                    └─────────────┘
 └─────────────┘                    └──────┬──────┘
                                           │
                                    Google ADK Runner
+                                     run_live()
                                           │
                                    ┌──────┴──────┐
                                    │   Gemini    │
-                                   │  Live API   │
                                    │  2.5 Flash  │
+                                   │ Native Audio│
                                    └─────────────┘
 
-  14 Tools: 5 Field (record equipment, meters, issues, evidence, standards)
-          + 9 Desk  (navigate, highlight, filter, explain, regulations, summary, screenshot, read page, click)
+  14 Tools: 5 Field (equipment, meters, issues, evidence, standards)
+          + 9 Desk  (navigate, click, highlight, filter, explain, regulate, summary, screenshot, read page)
 `}</pre>
           </div>
 
