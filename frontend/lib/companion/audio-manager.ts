@@ -2,8 +2,9 @@
  * AudioManager — handles microphone capture (16kHz PCM int16) and
  * playback of incoming audio (24kHz PCM int16).
  *
- * Extracted from the live-audit page audio logic and adapted for
- * the global companion provider.
+ * Playback uses a single persistent AudioContext with sequential
+ * scheduling. All active BufferSource nodes are tracked so they can
+ * be stopped instantly on interrupt (clearPlaybackQueue).
  */
 
 export class AudioManager {
@@ -14,10 +15,17 @@ export class AudioManager {
 
   /* ── Playback state ────────────────────────────────────────────────── */
   private playbackCtx: AudioContext | null = null;
-  private nextPlayTime = 0; // scheduled time for the next audio chunk
+  private nextPlayTime = 0;
+  private activeSources: AudioBufferSourceNode[] = [];
 
-  /* ── Mute ───────────────────────────────────────────────────────────── */
+  /* ── Mute & speaking gate ──────────────────────────────────────────── */
   private _muted = false;
+  private _speaking = false;
+  private _turnComplete = false;
+
+  /** Called when all queued audio has finished playing AND a turn_complete
+   *  was received. This is the safe moment to re-enable the microphone. */
+  onPlaybackIdle: (() => void) | null = null;
 
   get muted(): boolean {
     return this._muted;
@@ -27,13 +35,39 @@ export class AudioManager {
     this._muted = val;
   }
 
-  /* ── Capture ────────────────────────────────────────────────────────── */
+  /** Suppress mic capture while AI is speaking so speaker output
+   *  doesn't feed back into Gemini's VAD via the microphone. */
+  set speaking(val: boolean) {
+    this._speaking = val;
+  }
+
+  get isPlaying(): boolean {
+    return this.activeSources.length > 0;
+  }
 
   /**
-   * Request the microphone and start streaming PCM int16 chunks at 16 kHz.
-   * Every ScriptProcessor buffer (4096 frames) is converted from float32
-   * to int16 and forwarded to the provided callback.
+   * Signal that the server has sent turn_complete. If audio is still
+   * playing, the mic stays suppressed until playback actually finishes.
+   * If no audio is queued, fire the idle callback immediately.
    */
+  markTurnComplete(): void {
+    this._turnComplete = true;
+    if (this.activeSources.length === 0) {
+      this._firePlackbackIdle();
+    }
+    // else: onended of the last source will call _firePlaybackIdle
+  }
+
+  private _firePlackbackIdle(): void {
+    if (this._turnComplete) {
+      this._turnComplete = false;
+      this._speaking = false;
+      this.onPlaybackIdle?.();
+    }
+  }
+
+  /* ── Capture ────────────────────────────────────────────────────────── */
+
   async startCapture(onAudioData: (data: ArrayBuffer) => void): Promise<void> {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -53,7 +87,7 @@ export class AudioManager {
     this.processor = processor;
 
     processor.onaudioprocess = (e: AudioProcessingEvent) => {
-      if (this._muted) return;
+      if (this._muted || this._speaking) return;
       const float32 = e.inputBuffer.getChannelData(0);
       const int16 = new Int16Array(float32.length);
       for (let i = 0; i < float32.length; i++) {
@@ -69,15 +103,15 @@ export class AudioManager {
   /* ── Playback ───────────────────────────────────────────────────────── */
 
   /**
-   * Play a PCM int16 chunk at 24 kHz (Gemini output format).
-   * Chunks are queued sequentially so they play one after another
-   * instead of overlapping (which causes the "many voices" effect).
+   * Play a PCM int16 chunk at 24 kHz. Chunks are scheduled sequentially
+   * on a single AudioContext so they play gaplessly one after another.
    */
   playAudio(audioData: ArrayBuffer): void {
     try {
       if (!this.playbackCtx || this.playbackCtx.state === "closed") {
         this.playbackCtx = new AudioContext({ sampleRate: 24000 });
         this.nextPlayTime = 0;
+        this.activeSources = [];
       }
       const ctx = this.playbackCtx;
       const int16 = new Int16Array(audioData);
@@ -92,17 +126,24 @@ export class AudioManager {
       source.buffer = buffer;
       source.connect(ctx.destination);
 
-      // Schedule this chunk to play after the previous one finishes.
-      // If we've fallen behind (nextPlayTime < currentTime), start now.
-      const now = ctx.currentTime;
+      // Clean up finished sources; fire idle callback when queue drains
+      source.onended = () => {
+        const idx = this.activeSources.indexOf(source);
+        if (idx >= 0) this.activeSources.splice(idx, 1);
+        if (this.activeSources.length === 0) {
+          this._firePlackbackIdle();
+        }
+      };
 
-      // If queue is more than 5 seconds ahead, reset (audio has fallen too far behind)
+      const now = ctx.currentTime;
+      // Reset if queue drifted too far ahead
       if (this.nextPlayTime - now > 5) {
         this.nextPlayTime = now;
       }
 
       const startAt = Math.max(now, this.nextPlayTime);
       source.start(startAt);
+      this.activeSources.push(source);
       this.nextPlayTime = startAt + buffer.duration;
     } catch (e) {
       console.error("AudioManager playback error:", e);
@@ -110,10 +151,20 @@ export class AudioManager {
   }
 
   /**
-   * Stop all queued audio playback (e.g., when user interrupts).
+   * Immediately stop all queued and playing audio.
+   * Uses source.stop() on every tracked BufferSource for instant silence.
    */
   clearPlaybackQueue(): void {
+    for (const src of this.activeSources) {
+      try {
+        src.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+    this.activeSources = [];
     this.nextPlayTime = 0;
+    this._turnComplete = false;
   }
 
   /* ── Teardown ───────────────────────────────────────────────────────── */
@@ -135,6 +186,7 @@ export class AudioManager {
 
   destroy(): void {
     this.stopCapture();
+    this.clearPlaybackQueue();
     if (this.playbackCtx) {
       this.playbackCtx.close();
       this.playbackCtx = null;

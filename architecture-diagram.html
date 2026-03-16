@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuditAI — System Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --blue: #4285F4;
+    --red: #EA4335;
+    --yellow: #FBBC04;
+    --green: #34A853;
+    --bg: #0F1117;
+    --bg-card: #181B24;
+    --bg-card-alt: #1E2130;
+    --border: #2A2D3A;
+    --border-light: #363A4A;
+    --text: #E8EAED;
+    --text-dim: #9AA0A6;
+    --text-muted: #5F6368;
+    --blue-glow: rgba(66, 133, 244, 0.12);
+    --green-glow: rgba(52, 168, 83, 0.12);
+    --red-glow: rgba(234, 67, 53, 0.12);
+    --yellow-glow: rgba(251, 188, 4, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 1200px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+  .logo-mark {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue) 0%, #6EA8FE 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: #fff;
+    box-shadow: 0 2px 12px rgba(66,133,244,0.35);
+  }
+  .header h1 {
+    font-family: 'Google Sans', 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 30%, var(--blue) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .header .subtitle {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 400;
+    letter-spacing: 0.3px;
+  }
+  .badges {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge-blue  { background: rgba(66,133,244,0.15); color: var(--blue); border: 1px solid rgba(66,133,244,0.3); }
+  .badge-green { background: rgba(52,168,83,0.15); color: var(--green); border: 1px solid rgba(52,168,83,0.3); }
+  .badge-yellow { background: rgba(251,188,4,0.15); color: var(--yellow); border: 1px solid rgba(251,188,4,0.3); }
+
+  /* ── Main Canvas ── */
+  .canvas {
+    width: 100%;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: 220px 1fr 200px;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    position: relative;
+  }
+
+  /* ── Card base ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 14px 14px 0 0;
+  }
+  .card-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-label .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* ── Frontend Card ── */
+  .frontend {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+  .frontend::before { background: linear-gradient(90deg, var(--blue), var(--blue) 50%, transparent); }
+  .frontend .card-label { color: var(--blue); }
+  .frontend .dot { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+
+  .fe-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 12px 0 6px 0;
+  }
+  .fe-section-title:first-of-type { margin-top: 4px; }
+
+  .device-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .device-chip {
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(66,133,244,0.08);
+    border: 1px solid rgba(66,133,244,0.2);
+    color: #93b8f9;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .device-chip svg { width: 12px; height: 12px; fill: currentColor; opacity: 0.7; }
+
+  .page-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .page-item {
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: var(--bg-card-alt);
+    color: var(--text-dim);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .page-item .icon { font-size: 12px; opacity: 0.7; width: 16px; text-align: center; }
+
+  .ws-chip {
+    margin-top: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(66,133,244,0.12), rgba(66,133,244,0.04));
+    border: 1px solid rgba(66,133,244,0.25);
+    color: var(--blue);
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+
+  .deploy-tag {
+    margin-top: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .deploy-tag .cloud-icon { font-size: 12px; }
+
+  /* ── Backend Card ── */
+  .backend {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .backend::before { background: linear-gradient(90deg, var(--green), var(--green) 40%, transparent); }
+  .backend .card-label { color: var(--green); }
+  .backend .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  .be-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .be-block {
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .be-block-title {
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: var(--text);
+    letter-spacing: -0.1px;
+  }
+  .be-block-sub {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .be-ws {
+    border-color: rgba(52,168,83,0.3);
+    background: rgba(52,168,83,0.05);
+  }
+  .be-adk {
+    border-color: rgba(66,133,244,0.3);
+    background: rgba(66,133,244,0.05);
+    grid-column: 2 / 4;
+  }
+  .adk-flow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .adk-node {
+    font-size: 9px;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: rgba(66,133,244,0.12);
+    color: #7BAAF7;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+  .adk-arrow {
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  /* ── Agent System Card ── */
+  .agents {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .agents::before { background: linear-gradient(90deg, var(--yellow), var(--yellow) 40%, transparent); }
+  .agents .card-label { color: var(--yellow); }
+  .agents .dot { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+  .agent-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .agent-root {
+    background: linear-gradient(135deg, rgba(251,188,4,0.1), rgba(251,188,4,0.03));
+    border: 1px solid rgba(251,188,4,0.3);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .agent-root-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--yellow), #F9A825);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(251,188,4,0.3);
+  }
+  .agent-root-info { flex: 1; }
+  .agent-root-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .agent-root-model {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+
+  .agent-children {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    padding-left: 0;
+    position: relative;
+  }
+
+  .agent-child {
+    border-radius: 10px;
+    padding: 10px;
+    position: relative;
+  }
+  .agent-child-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 6px;
+  }
+  .agent-child-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .agent-child-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .agent-child-model {
+    font-size: 8.5px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+  .agent-child-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: auto;
+  }
+
+  .child-live {
+    background: linear-gradient(135deg, rgba(234,67,53,0.08), rgba(234,67,53,0.02));
+    border: 1px solid rgba(234,67,53,0.25);
+  }
+  .child-live .agent-child-icon {
+    background: linear-gradient(135deg, var(--red), #F06292);
+    box-shadow: 0 2px 8px rgba(234,67,53,0.3);
+  }
+  .child-live .agent-child-badge {
+    background: rgba(234,67,53,0.15);
+    color: var(--red);
+  }
+
+  .child-report {
+    background: linear-gradient(135deg, rgba(66,133,244,0.08), rgba(66,133,244,0.02));
+    border: 1px solid rgba(66,133,244,0.25);
+  }
+  .child-report .agent-child-icon {
+    background: linear-gradient(135deg, var(--blue), #64B5F6);
+    box-shadow: 0 2px 8px rgba(66,133,244,0.3);
+  }
+  .child-report .agent-child-badge {
+    background: rgba(66,133,244,0.15);
+    color: var(--blue);
+  }
+
+  .child-extract {
+    background: linear-gradient(135deg, rgba(52,168,83,0.08), rgba(52,168,83,0.02));
+    border: 1px solid rgba(52,168,83,0.25);
+  }
+  .child-extract .agent-child-icon {
+    background: linear-gradient(135deg, var(--green), #66BB6A);
+    box-shadow: 0 2px 8px rgba(52,168,83,0.3);
+  }
+  .child-extract .agent-child-badge {
+    background: rgba(52,168,83,0.15);
+    color: var(--green);
+  }
+
+  .tool-section {
+    margin-top: 6px;
+  }
+  .tool-group-label {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+    margin-top: 5px;
+  }
+  .tool-group-label:first-child { margin-top: 0; }
+  .tool-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  .tool-tag {
+    font-size: 8px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .tool-tag-red {
+    background: rgba(234,67,53,0.1);
+    color: #ef9a9a;
+    border: 1px solid rgba(234,67,53,0.15);
+  }
+  .tool-tag-blue {
+    background: rgba(66,133,244,0.1);
+    color: #90caf9;
+    border: 1px solid rgba(66,133,244,0.15);
+  }
+  .tool-tag-green {
+    background: rgba(52,168,83,0.1);
+    color: #a5d6a7;
+    border: 1px solid rgba(52,168,83,0.15);
+  }
+
+  /* ── External Services ── */
+  .services {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+  .services::before { background: linear-gradient(90deg, var(--red), var(--red) 50%, transparent); }
+  .services .card-label { color: var(--red); }
+  .services .dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  .svc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .svc-item {
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .svc-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .svc-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .svc-desc {
+    font-size: 9px;
+    color: var(--text-muted);
+    line-height: 1.3;
+    font-weight: 400;
+  }
+
+  .svc-gemini-live {
+    background: linear-gradient(135deg, rgba(234,67,53,0.08), rgba(234,67,53,0.02));
+    border: 1px solid rgba(234,67,53,0.2);
+  }
+  .svc-gemini-live .svc-icon {
+    background: linear-gradient(135deg, var(--red), #FF7043);
+    box-shadow: 0 2px 6px rgba(234,67,53,0.25);
+  }
+
+  .svc-gemini-flash {
+    background: linear-gradient(135deg, rgba(66,133,244,0.08), rgba(66,133,244,0.02));
+    border: 1px solid rgba(66,133,244,0.2);
+  }
+  .svc-gemini-flash .svc-icon {
+    background: linear-gradient(135deg, var(--blue), #42A5F5);
+    box-shadow: 0 2px 6px rgba(66,133,244,0.25);
+  }
+
+  .svc-firestore {
+    background: linear-gradient(135deg, rgba(251,188,4,0.08), rgba(251,188,4,0.02));
+    border: 1px solid rgba(251,188,4,0.2);
+  }
+  .svc-firestore .svc-icon {
+    background: linear-gradient(135deg, var(--yellow), #FFB300);
+    box-shadow: 0 2px 6px rgba(251,188,4,0.25);
+  }
+
+  .svc-cloudbuild {
+    background: linear-gradient(135deg, rgba(52,168,83,0.08), rgba(52,168,83,0.02));
+    border: 1px solid rgba(52,168,83,0.2);
+  }
+  .svc-cloudbuild .svc-icon {
+    background: linear-gradient(135deg, var(--green), #43A047);
+    box-shadow: 0 2px 6px rgba(52,168,83,0.25);
+  }
+
+  /* ── Data Flow Bar ── */
+  .flow-bar {
+    width: 100%;
+    max-width: 1200px;
+    margin-top: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .flow-bar::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--blue), var(--green), var(--yellow), var(--red));
+  }
+  .flow-bar-title {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .flow-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .flow-num {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: #fff;
+  }
+  .flow-num-1 { background: linear-gradient(135deg, var(--blue), #64B5F6); }
+  .flow-num-2 { background: linear-gradient(135deg, var(--green), #66BB6A); }
+  .flow-num-3 { background: linear-gradient(135deg, var(--yellow), #FFB300); }
+  .flow-num-4 { background: linear-gradient(135deg, var(--red), #EF5350); }
+  .flow-text {
+    font-size: 10.5px;
+    color: var(--text-dim);
+    line-height: 1.45;
+    font-weight: 400;
+  }
+  .flow-text strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ── Connection Lines (SVG overlay) ── */
+  .connections {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Tech Stack Labels ── */
+  .tech-label {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  /* ── Arrow Connectors (pure CSS) ── */
+  .arrow-right {
+    position: absolute;
+    right: -17px;
+    top: 50%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+  }
+  .arrow-line {
+    width: 12px;
+    height: 2px;
+    background: var(--border-light);
+  }
+  .arrow-head {
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 5px solid var(--border-light);
+  }
+
+  /* ── Connector labels between sections ── */
+  .conn-labels {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 16px;
+    margin-top: -6px;
+    margin-bottom: -6px;
+  }
+  .conn-label {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .conn-arrow {
+    font-size: 11px;
+    color: var(--border-light);
+  }
+
+  /* ── Animated pulse dot ── */
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+  }
+  .pulse-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease-in-out infinite;
+    display: inline-block;
+  }
+
+  /* ── Streaming indicators ── */
+  @keyframes stream {
+    0% { opacity: 0.2; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.2; }
+  }
+  .stream-dot {
+    display: inline-block;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    margin: 0 1px;
+  }
+  .stream-dot:nth-child(1) { animation: stream 1.5s ease-in-out 0s infinite; }
+  .stream-dot:nth-child(2) { animation: stream 1.5s ease-in-out 0.3s infinite; }
+  .stream-dot:nth-child(3) { animation: stream 1.5s ease-in-out 0.6s infinite; }
+
+  /* footer */
+  .footer {
+    margin-top: 18px;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .footer a {
+    color: var(--blue);
+    text-decoration: none;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo-mark">A</div>
+    <h1>AuditAI</h1>
+  </div>
+  <div class="subtitle">AI-Powered Audit Companion with Real-Time Voice &amp; Vision</div>
+  <div class="badges">
+    <span class="badge badge-blue">Gemini Live Agent Challenge</span>
+    <span class="badge badge-green">Track 3: UI Navigator</span>
+    <span class="badge badge-yellow">Google ADK</span>
+  </div>
+</div>
+
+<!-- ═══ MAIN CANVAS ═══ -->
+<div class="canvas">
+
+  <!-- ── FRONTEND ── -->
+  <div class="card frontend">
+    <div class="card-label">
+      <span class="dot"></span> Frontend
+    </div>
+    <span class="tech-label">Next.js 16 + React 19</span>
+
+    <div class="fe-section-title">Device Input</div>
+    <div class="device-row">
+      <div class="device-chip">
+        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        Microphone
+      </div>
+      <div class="device-chip">
+        <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        Camera
+      </div>
+      <div class="device-chip">
+        <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        Speaker
+      </div>
+    </div>
+
+    <div class="fe-section-title">Pages</div>
+    <div class="page-list">
+      <div class="page-item"><span class="icon">&#9776;</span> Cases</div>
+      <div class="page-item"><span class="icon">&#128196;</span> Documents</div>
+      <div class="page-item"><span class="icon">&#128202;</span> Reports</div>
+      <div class="page-item"><span class="icon">&#128200;</span> KPIs</div>
+    </div>
+
+    <div class="ws-chip">
+      <span class="stream-dot" style="background:var(--blue)"></span>
+      <span class="stream-dot" style="background:var(--blue)"></span>
+      <span class="stream-dot" style="background:var(--blue)"></span>
+      &nbsp;WebSocket Client
+    </div>
+
+    <div class="deploy-tag">
+      <span class="cloud-icon">&#9729;</span> Google Cloud Run
+    </div>
+  </div>
+
+  <!-- ── BACKEND ── -->
+  <div class="card backend">
+    <div class="card-label">
+      <span class="dot"></span> Backend
+      <span class="pulse-dot" style="margin-left: 4px;"></span>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <span class="tech-label">FastAPI + Google ADK</span>
+      <div class="deploy-tag" style="margin:0;">
+        <span class="cloud-icon">&#9729;</span> Google Cloud Run
+      </div>
+    </div>
+
+    <div class="be-grid">
+      <div class="be-block be-ws">
+        <div class="be-block-title" style="color:var(--green);">WebSocket Server</div>
+        <div class="be-block-sub">/ws/{session_id}</div>
+        <div style="font-size:9px; color:var(--text-muted); line-height:1.4;">
+          Bidirectional binary<br>+ JSON control frames
+        </div>
+      </div>
+      <div class="be-block be-adk">
+        <div class="be-block-title" style="color:var(--blue);">ADK Runner.run_live()</div>
+        <div class="be-block-sub">Bidirectional streaming session</div>
+        <div class="adk-flow">
+          <span class="adk-node">Audio In</span>
+          <span class="adk-arrow">&#8594;</span>
+          <span class="adk-node">LiveRequestQueue</span>
+          <span class="adk-arrow">&#8594;</span>
+          <span class="adk-node">Gemini Live API</span>
+          <span class="adk-arrow">&#8594;</span>
+          <span class="adk-node">Audio Out + Tool Calls</span>
+        </div>
+        <div style="margin-top:6px; font-size:9px; color:var(--text-muted); line-height:1.4;">
+          Video frames injected as inline JPEG into request queue at 2 fps
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ADK MULTI-AGENT SYSTEM ── -->
+  <div class="card agents">
+    <div class="card-label">
+      <span class="dot"></span> Google ADK Multi-Agent System
+    </div>
+
+    <div class="agent-tree">
+      <!-- Root -->
+      <div class="agent-root">
+        <div class="agent-root-icon">&#9878;</div>
+        <div class="agent-root-info">
+          <div class="agent-root-name">Root Coordinator</div>
+          <div class="agent-root-model">gemini-3.0-flash</div>
+        </div>
+        <div style="font-size:9px; color:var(--text-muted); margin-left:auto; text-align:right; line-height:1.3;">
+          Routes to sub-agents<br>based on user intent
+        </div>
+      </div>
+
+      <!-- Children -->
+      <div class="agent-children">
+        <!-- LiveAuditAgent -->
+        <div class="agent-child child-live">
+          <div class="agent-child-header">
+            <div class="agent-child-icon">&#127911;</div>
+            <div>
+              <div class="agent-child-name">LiveAuditAgent</div>
+              <div class="agent-child-model">gemini-2.5-flash-preview-native-audio</div>
+            </div>
+            <div class="agent-child-badge">14 tools</div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-group-label">5 Field Tools</div>
+            <div class="tool-list">
+              <span class="tool-tag tool-tag-red">record_equipment</span>
+              <span class="tool-tag tool-tag-red">record_meter_reading</span>
+              <span class="tool-tag tool-tag-red">flag_issue</span>
+              <span class="tool-tag tool-tag-red">capture_evidence</span>
+              <span class="tool-tag tool-tag-red">query_standard</span>
+            </div>
+            <div class="tool-group-label">9 Desk / UI Tools</div>
+            <div class="tool-list">
+              <span class="tool-tag tool-tag-red">navigate_to</span>
+              <span class="tool-tag tool-tag-red">highlight_element</span>
+              <span class="tool-tag tool-tag-red">filter_view</span>
+              <span class="tool-tag tool-tag-red">explain_context</span>
+              <span class="tool-tag tool-tag-red">query_regulation</span>
+              <span class="tool-tag tool-tag-red">generate_summary</span>
+              <span class="tool-tag tool-tag-red">take_screenshot</span>
+              <span class="tool-tag tool-tag-red">read_current_page</span>
+              <span class="tool-tag tool-tag-red">click_element</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ReportAgent -->
+        <div class="agent-child child-report">
+          <div class="agent-child-header">
+            <div class="agent-child-icon">&#128203;</div>
+            <div>
+              <div class="agent-child-name">ReportAgent</div>
+              <div class="agent-child-model">gemini-3.0-flash</div>
+            </div>
+            <div class="agent-child-badge">3 tools</div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-group-label">Report Tools</div>
+            <div class="tool-list">
+              <span class="tool-tag tool-tag-blue">generate_report</span>
+              <span class="tool-tag tool-tag-blue">list_findings</span>
+              <span class="tool-tag tool-tag-blue">export_pdf</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ExtractionAgent -->
+        <div class="agent-child child-extract">
+          <div class="agent-child-header">
+            <div class="agent-child-icon">&#128269;</div>
+            <div>
+              <div class="agent-child-name">ExtractionAgent</div>
+              <div class="agent-child-model">gemini-3.0-flash</div>
+            </div>
+            <div class="agent-child-badge">2 tools</div>
+          </div>
+          <div class="tool-section">
+            <div class="tool-group-label">Extraction Tools</div>
+            <div class="tool-list">
+              <span class="tool-tag tool-tag-green">extract_document</span>
+              <span class="tool-tag tool-tag-green">parse_table</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EXTERNAL SERVICES ── -->
+  <div class="card services">
+    <div class="card-label">
+      <span class="dot"></span> Google Cloud
+    </div>
+
+    <div class="svc-list">
+      <div class="svc-item svc-gemini-live">
+        <div class="svc-icon">&#10024;</div>
+        <div>
+          <div class="svc-name">Gemini Live API</div>
+          <div class="svc-desc">Native audio + vision<br>Real-time streaming</div>
+        </div>
+      </div>
+
+      <div class="svc-item svc-gemini-flash">
+        <div class="svc-icon">&#9889;</div>
+        <div>
+          <div class="svc-name">Gemini 3 Flash API</div>
+          <div class="svc-desc">Text generation<br>Reports &amp; extraction</div>
+        </div>
+      </div>
+
+      <div class="svc-item svc-firestore">
+        <div class="svc-icon">&#128451;</div>
+        <div>
+          <div class="svc-name">Cloud Firestore</div>
+          <div class="svc-desc">Data persistence<br>Cases, findings, KPIs</div>
+        </div>
+      </div>
+
+      <div class="svc-item svc-cloudbuild">
+        <div class="svc-icon">&#9881;</div>
+        <div>
+          <div class="svc-name">Cloud Build</div>
+          <div class="svc-desc">CI/CD pipeline<br>Auto-deploy on push</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ DATA FLOW BAR ═══ -->
+<div class="flow-bar">
+  <div class="flow-bar-title">
+    <span style="font-size:12px;">&#8644;</span> Data Flow — Real-Time Audit Session
+  </div>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-num flow-num-1">1</div>
+      <div class="flow-text">
+        <strong>User speaks &amp; points camera</strong><br>
+        Frontend captures PCM 16kHz audio + JPEG frames at 2 fps
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num flow-num-2">2</div>
+      <div class="flow-text">
+        <strong>Streams to backend</strong><br>
+        WebSocket &#8594; ADK LiveRequestQueue &#8594; Gemini Live API
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num flow-num-3">3</div>
+      <div class="flow-text">
+        <strong>Gemini responds</strong><br>
+        Audio replies + function calls. ADK auto-executes tools, streams results back
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num flow-num-4">4</div>
+      <div class="flow-text">
+        <strong>UI Navigator</strong><br>
+        AI reads page context, navigates, highlights, and clicks via desk tools
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  AuditAI &mdash; Gemini API Developer Competition 2025 &nbsp;|&nbsp; Built with Google ADK + Gemini Live API
+</div>
+
+</body>
+</html>

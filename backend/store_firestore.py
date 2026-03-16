@@ -342,24 +342,22 @@ async def list_audit_events(
     offset: int = 0,
 ) -> list[AuditEvent]:
     db = get_db()
+    # Fetch all events sorted by timestamp, then filter in Python.
+    # Avoids Firestore composite index requirements for where + order_by.
     query = db.collection("audit_log").order_by("timestamp", direction="DESCENDING")
-    if case_id:
-        query = query.where("case_id", "==", case_id)
-    if action:
-        query = query.where("action", "==", action)
-    if actor:
-        query = query.where("actor", "==", actor)
-    # Firestore doesn't support offset natively; skip manually
-    results: list[AuditEvent] = []
-    skipped = 0
+    all_events: list[AuditEvent] = []
     async for doc in query.stream():
-        if skipped < offset:
-            skipped += 1
-            continue
-        if len(results) >= limit:
-            break
-        results.append(AuditEvent(**doc.to_dict()))
-    return results
+        all_events.append(AuditEvent(**doc.to_dict()))
+
+    # Client-side filtering
+    if case_id:
+        all_events = [e for e in all_events if e.case_id == case_id]
+    if action:
+        all_events = [e for e in all_events if e.action == action]
+    if actor:
+        all_events = [e for e in all_events if e.actor == actor]
+
+    return all_events[offset : offset + limit]
 
 
 async def delete_audit_events_by_case(case_id: str) -> int:

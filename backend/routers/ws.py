@@ -308,15 +308,19 @@ async def _downstream(
     run_config: RunConfig,
     session_id: str,
 ):
-    """Receive events from ADK runner, forward to frontend WebSocket."""
-    _output_buffer = ""  # Accumulates output_transcription chunks per turn
+    """Receive events from ADK runner, forward to frontend WebSocket.
+
+    Same streaming design as _companion_downstream.
+    """
+    _turn_id = 0
+    _input_acc = ""
+    _output_acc = ""
     try:
         async for event in runner.run_live(
             session=session,
             live_request_queue=live_queue,
             run_config=run_config,
         ):
-            # Handle errors
             if event.error_code:
                 await websocket.send_json({
                     "type": "error",
@@ -324,43 +328,43 @@ async def _downstream(
                 })
                 continue
 
-            # ── Transcription handling (buffer design) ──
-            #
-            # Design: Transcription is a RECORD of what was said, not real-time
-            # captions. Users hear the audio in real-time; text appears once per
-            # turn as a complete message.
-            #
-            # Gemini sends output_transcription as streaming chunks + a final
-            # summary. We buffer ALL chunks and only send the complete text
-            # when turn_complete fires. This eliminates duplication by design.
-            #
-            # For input_transcription: only useful for VOICE input (mic).
-            # Text input is already shown by the frontend's sendText().
-            # We skip input_transcription entirely — if the user typed text,
-            # the frontend already displayed it. If they spoke, the transcription
-            # would duplicate with future voice support.
+            if event.input_transcription and event.input_transcription.text:
+                if getattr(event.input_transcription, 'finished', False):
+                    _input_acc = event.input_transcription.text
+                else:
+                    _input_acc += event.input_transcription.text
+                clean = _input_acc.strip()
+                if clean:
+                    await websocket.send_json({
+                        "type": "transcript_delta",
+                        "role": "user",
+                        "text": clean,
+                        "turn_id": _turn_id,
+                    })
 
-            # Buffer output transcription — always keep the LAST event's text.
-            # Gemini sends incremental chunks then a final complete text.
-            # The final event (right before turn_complete) has the full sentence.
-            # By always overwriting, we guarantee no duplication.
             if event.output_transcription and event.output_transcription.text:
-                _output_buffer = event.output_transcription.text
+                if getattr(event.output_transcription, 'finished', False):
+                    _output_acc = event.output_transcription.text
+                else:
+                    _output_acc += event.output_transcription.text
+                clean = _output_acc.strip()
+                if clean and not _is_thinking_text(clean):
+                    await websocket.send_json({
+                        "type": "transcript_delta",
+                        "role": "assistant",
+                        "text": clean,
+                        "turn_id": _turn_id,
+                    })
 
-            # Handle content (audio or text)
             if event.content and event.content.parts:
-                has_audio_output = False
                 for part in event.content.parts:
-                    # Audio output
                     if part.inline_data and part.inline_data.data:
-                        has_audio_output = True
                         audio_b64 = base64.b64encode(part.inline_data.data).decode()
                         await websocket.send_json({
                             "type": "audio",
                             "data": audio_b64,
                         })
 
-                    # Tool call results (ADK handles execution automatically)
                     if part.function_call:
                         await websocket.send_json({
                             "type": "tool_call",
@@ -375,31 +379,20 @@ async def _downstream(
                             "result": dict(part.function_response.response) if part.function_response.response else {},
                         })
 
-                # Text output — DISABLED in AUDIO mode.
-                # In AUDIO mode (response_modalities=["AUDIO"]), all spoken text
-                # is already captured by output_transcription. Sending part.text
-                # would duplicate every response. Only send text if we somehow
-                # get a text-only response with no audio AND no transcription.
-                # This should not happen in normal AUDIO mode operation.
-
-            # Handle turn complete — flush transcription buffer
             if event.turn_complete:
-                if _output_buffer:
-                    # Filter thinking text from the complete response
-                    clean_text = _output_buffer.strip()
-                    if clean_text and not _is_thinking_text(clean_text):
-                        await websocket.send_json({
-                            "type": "transcript",
-                            "role": "assistant",
-                            "text": clean_text,
-                        })
-                        await _save_transcript(session_id, "assistant", clean_text)
-                    _output_buffer = ""
+                if _input_acc.strip():
+                    await _save_transcript(session_id, "user", _input_acc.strip())
+                if _output_acc.strip():
+                    await _save_transcript(session_id, "assistant", _output_acc.strip())
+                _turn_id += 1
+                _input_acc = ""
+                _output_acc = ""
                 await websocket.send_json({"type": "turn_complete"})
 
-            # Handle interrupted
             if event.interrupted:
-                _output_buffer = ""  # Discard partial transcription on barge-in
+                _turn_id += 1
+                _input_acc = ""
+                _output_acc = ""
                 await websocket.send_json({"type": "interrupted"})
 
     except WebSocketDisconnect:
@@ -464,24 +457,28 @@ async def _companion_upstream(
                     live_queue.send_content(content)
 
                 elif msg_type == "set_mode":
+                    # Mode-only update: just log it. Mode is included in
+                    # screen_context messages to avoid a separate send_content()
+                    # which would force Gemini to respond immediately.
                     mode = msg.get("mode", "desk")
                     logger.info(f"Companion mode changed to: {mode} (session={session_id})")
-                    # Inform the agent about mode change via system message
-                    system_msg = types.Content(
-                        role="user",
-                        parts=[types.Part(text=(
-                            f"[SYSTEM] Mode changed to {mode.upper()}. "
-                            f"{'Focus on camera observation and field tools (record equipment, meters, flag issues, capture evidence).' if mode == 'field' else 'Focus on UI navigation, data lookup, and explanation. Use desk tools (navigate, highlight, filter, explain, show regulation, read summary) to help the user.'}"
-                        ))],
-                    )
-                    live_queue.send_content(system_msg)
 
                 elif msg_type == "screen_context":
                     page = msg.get("page", "unknown")
                     data = msg.get("data", {})
-                    logger.info(f"Companion screen context: page={page} (session={session_id})")
-                    # Send page context to agent as system message
-                    context_parts = [f"[SYSTEM] User is now viewing: {page}"]
+                    mode = msg.get("mode")
+                    logger.info(f"Companion screen context: page={page} mode={mode} (session={session_id})")
+                    # Send ONE combined context message to agent.
+                    # Each send_content() forces turn_complete=true so Gemini
+                    # responds immediately — must minimize these calls.
+                    context_parts = [f"[CONTEXT] User is viewing: {page}"]
+                    if mode:
+                        mode_desc = (
+                            "Focus on camera observation and field tools."
+                            if mode == "field"
+                            else "Focus on UI navigation, data lookup, and explanation."
+                        )
+                        context_parts.append(f"Mode: {mode.upper()} — {mode_desc}")
                     if data:
                         context_parts.append(f"Page data: {json.dumps(data, default=str)}")
                     system_msg = types.Content(
@@ -537,18 +534,26 @@ async def _companion_downstream(
 ):
     """Receive events from companion ADK runner, forward to frontend.
 
-    In addition to all standard event forwarding, when a tool_call result
-    contains an "action" key, a separate ui_command message is sent to the
-    frontend so it can execute the UI action.
+    Streaming design (based on ADK source code):
+      - Audio chunks: forwarded immediately. Arrive in order, faster than
+        real-time. Frontend plays via sequential scheduling.
+      - Transcription: ADK yields INCREMENTAL chunks (partial=True) then
+        one FINAL event (finished=True) with the full accumulated text.
+        We accumulate incremental chunks server-side and stream the
+        cumulative text to the frontend as transcript_delta. The frontend
+        REPLACES the bubble text on each delta (same turn_id + role).
+      - turn_complete: finalises the turn; frontend seals the bubble.
+      - Tool results with "action" key also emit a ui_command.
     """
-    _output_buffer = ""  # Accumulates output_transcription chunks per turn
+    _turn_id = 0
+    _input_acc = ""    # accumulates INCREMENTAL input_transcription chunks
+    _output_acc = ""   # accumulates INCREMENTAL output_transcription chunks
     try:
         async for event in runner.run_live(
             session=session,
             live_request_queue=live_queue,
             run_config=run_config,
         ):
-            # Handle errors
             if event.error_code:
                 await websocket.send_json({
                     "type": "error",
@@ -556,30 +561,50 @@ async def _companion_downstream(
                 })
                 continue
 
-            # ── Transcription handling (buffer design) ──
-            # Same as _downstream: buffer chunks, flush on turn_complete.
+            # ── Transcription (streaming) ──
+            # ADK output_transcription: partial events have incremental text,
+            # final event (finished=True) has full accumulated text.
+            # We accumulate ourselves for partials, and use the final text
+            # as the authoritative version.
 
-            # Buffer output transcription — always keep the LAST event's text.
-            # Gemini sends incremental chunks then a final complete text.
-            # The final event (right before turn_complete) has the full sentence.
-            # By always overwriting, we guarantee no duplication.
+            if event.input_transcription and event.input_transcription.text:
+                if getattr(event.input_transcription, 'finished', False):
+                    _input_acc = event.input_transcription.text
+                else:
+                    _input_acc += event.input_transcription.text
+                clean = _input_acc.strip()
+                if clean:
+                    await websocket.send_json({
+                        "type": "transcript_delta",
+                        "role": "user",
+                        "text": clean,
+                        "turn_id": _turn_id,
+                    })
+
             if event.output_transcription and event.output_transcription.text:
-                _output_buffer = event.output_transcription.text
+                if getattr(event.output_transcription, 'finished', False):
+                    _output_acc = event.output_transcription.text
+                else:
+                    _output_acc += event.output_transcription.text
+                clean = _output_acc.strip()
+                if clean and not _is_thinking_text(clean):
+                    await websocket.send_json({
+                        "type": "transcript_delta",
+                        "role": "assistant",
+                        "text": clean,
+                        "turn_id": _turn_id,
+                    })
 
-            # Handle content (audio or text)
+            # ── Audio & tool calls (forwarded as-is) ──
             if event.content and event.content.parts:
-                has_audio_output = False
                 for part in event.content.parts:
-                    # Audio output
                     if part.inline_data and part.inline_data.data:
-                        has_audio_output = True
                         audio_b64 = base64.b64encode(part.inline_data.data).decode()
                         await websocket.send_json({
                             "type": "audio",
                             "data": audio_b64,
                         })
 
-                    # Tool call (ADK handles execution automatically)
                     if part.function_call:
                         await websocket.send_json({
                             "type": "tool_call",
@@ -587,7 +612,6 @@ async def _companion_downstream(
                             "args": dict(part.function_call.args) if part.function_call.args else {},
                         })
 
-                    # Tool result — also emit ui_command if result has an "action" key
                     if part.function_response:
                         result = dict(part.function_response.response) if part.function_response.response else {}
                         await websocket.send_json({
@@ -595,37 +619,27 @@ async def _companion_downstream(
                             "name": part.function_response.name,
                             "result": result,
                         })
-                        # If the tool result contains an action, send a ui_command
                         if "action" in result:
                             ui_cmd = {"type": "ui_command"}
                             ui_cmd.update(result)
                             await websocket.send_json(ui_cmd)
 
-                # Text output — DISABLED in AUDIO mode.
-                # In AUDIO mode (response_modalities=["AUDIO"]), all spoken text
-                # is already captured by output_transcription. Sending part.text
-                # would duplicate every response. Only send text if we somehow
-                # get a text-only response with no audio AND no transcription.
-                # This should not happen in normal AUDIO mode operation.
-
-            # Handle turn complete — flush transcription buffer
+            # ── Turn complete ──
             if event.turn_complete:
-                if _output_buffer:
-                    # Filter thinking text from the complete response
-                    clean_text = _output_buffer.strip()
-                    if clean_text and not _is_thinking_text(clean_text):
-                        await websocket.send_json({
-                            "type": "transcript",
-                            "role": "assistant",
-                            "text": clean_text,
-                        })
-                        await _save_transcript(session_id, "assistant", clean_text)
-                    _output_buffer = ""
+                if _input_acc.strip():
+                    await _save_transcript(session_id, "user", _input_acc.strip())
+                if _output_acc.strip():
+                    await _save_transcript(session_id, "assistant", _output_acc.strip())
+                _turn_id += 1
+                _input_acc = ""
+                _output_acc = ""
                 await websocket.send_json({"type": "turn_complete"})
 
-            # Handle interrupted
+            # ── Interrupted ──
             if event.interrupted:
-                _output_buffer = ""  # Discard partial transcription on barge-in
+                _turn_id += 1
+                _input_acc = ""
+                _output_acc = ""
                 await websocket.send_json({"type": "interrupted"})
 
     except WebSocketDisconnect:

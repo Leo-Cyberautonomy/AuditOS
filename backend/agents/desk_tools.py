@@ -5,9 +5,39 @@ to the user. They are called by the ADK Agent and their results are forwarded
 to the frontend via WebSocket.
 """
 
+import re
+
 from firestore_client import run_async
 import store_firestore as fs
 from agents.live_audit_agent import _ctx_case_id, _ctx_session_id
+
+
+def _resolve_case_id(raw: str) -> str:
+    """Resolve a fuzzy case ID to the real Firestore ID.
+
+    Gemini may generate IDs like 'case_001', 'case 1', '001', 'Case-001', etc.
+    We extract the numeric part and match against existing cases (e.g. 'CASE-001').
+    Returns the original string unchanged if no match is found.
+    """
+    # Already looks correct (e.g. CASE-001)
+    cases = run_async(fs.list_cases())
+    case_ids = [c.id for c in cases]
+
+    # Exact match (case-insensitive)
+    for cid in case_ids:
+        if cid.lower() == raw.lower():
+            return cid
+
+    # Extract digits from the input and try matching
+    digits = re.findall(r"\d+", raw)
+    if digits:
+        num = digits[-1]  # use the last number found
+        for cid in case_ids:
+            cid_digits = re.findall(r"\d+", cid)
+            if cid_digits and cid_digits[-1].lstrip("0") == num.lstrip("0"):
+                return cid
+
+    return raw
 
 
 def navigate_to(page: str, case_id: str | None = None) -> dict:
@@ -16,12 +46,15 @@ def navigate_to(page: str, case_id: str | None = None) -> dict:
     Args:
         page: Target page -- dashboard, cases, live-audit, documents, evidence,
               review, analytics, measures, report, compliance, exports, audit-log.
-        case_id: Case ID, required for case-specific pages.
+        case_id: Case ID, required for case-specific pages. Use the exact ID
+                 format from the cases list (e.g. "CASE-001", not "case_001").
     """
+    raw_id = case_id or _ctx_case_id.get()
+    resolved_id = _resolve_case_id(raw_id) if raw_id and raw_id != "unknown" else raw_id
     return {
         "action": "navigate_to",
         "page": page,
-        "case_id": case_id or _ctx_case_id.get(),
+        "case_id": resolved_id,
         "message": f"Navigating to {page}",
     }
 
@@ -90,6 +123,7 @@ def explain_item(item_type: str, item_id: str) -> dict:
         else:
             data = {"error": "Measure not found"}
     elif item_type == "case":
+        item_id = _resolve_case_id(item_id)
         item = run_async(fs.get_case(item_id))
         if item:
             data = {
@@ -145,7 +179,8 @@ def read_summary(scope: str = "case", case_id: str | None = None) -> dict:
         scope: What to summarize -- case (overview), findings (all findings), measures (recommended actions).
         case_id: Case ID. Uses current context case if not specified.
     """
-    cid = case_id or _ctx_case_id.get()
+    raw_cid = case_id or _ctx_case_id.get()
+    cid = _resolve_case_id(raw_cid) if raw_cid and raw_cid != "unknown" else raw_cid
 
     if scope == "case":
         case = run_async(fs.get_case(cid))

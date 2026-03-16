@@ -1,6 +1,6 @@
 # AuditAI — Real-Time AI Field Audit Assistant
 
-> **Gemini Live Agent Challenge** | Live Agents Track
+> **Gemini Live Agent Challenge** | Track 3: UI Navigator
 
 AuditAI is an AI-powered platform that transforms energy auditing through real-time multimodal interaction. Auditors speak naturally and point their camera at equipment — Gemini sees, understands, and acts as a knowledgeable co-pilot during field inspections.
 
@@ -93,10 +93,12 @@ AuditAI puts an expert AI co-pilot in the auditor's pocket:
 | State Management | Zustand |
 | Real-time | WebSocket (frontend ↔ backend ↔ Gemini Live API) |
 | Backend | Python 3.13, FastAPI, Google ADK (`google-adk`) |
+| Database | **Google Cloud Firestore** (9 collections, async CRUD) |
 | Agent Framework | Google ADK — `Agent`, `Runner`, `InMemorySessionService`, `LiveRequestQueue` |
 | Models | **Gemini 2.5 Flash Native Audio** (live), **Gemini 3 Flash** (batch) |
 | Deployment | **Google Cloud Run** (backend + frontend) |
 | Document Processing | pdfplumber, Pandas, Pillow, markitdown |
+| Deployment | **Google Cloud Run** (backend + frontend), **Cloud Build** |
 
 ## Google Cloud Services
 

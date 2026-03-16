@@ -62,22 +62,38 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null);
   const audioRef = useRef<AudioManager | null>(null);
   const activeCaseIdRef = useRef<string | null>(null);
+  const prevPathnameRef = useRef<string>(pathname);
 
   /* ── Helpers ──────────────────────────────────────────────────────── */
 
+  /** Append a complete transcript entry (e.g. user-typed text). */
   const addTranscript = useCallback(
     (role: "user" | "assistant" | "system", text: string) => {
+      setTranscript((prev) => [
+        ...prev,
+        { role, text, timestamp: new Date() },
+      ]);
+    },
+    [],
+  );
+
+  /** Streaming update: upsert a transcript entry by turnId.
+   *  Gemini sends cumulative text per turn, so we REPLACE the text
+   *  of the matching entry (same turnId + role) rather than appending. */
+  const upsertTranscriptDelta = useCallback(
+    (role: "user" | "assistant", text: string, turnId: number) => {
       setTranscript((prev) => {
-        // Merge consecutive same-role entries (streaming text chunks)
-        if (prev.length > 0 && prev[prev.length - 1].role === role) {
+        const idx = prev.findIndex(
+          (e) => e.turnId === turnId && e.role === role,
+        );
+        if (idx >= 0) {
+          // Replace text in existing bubble
           const updated = [...prev];
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            text: updated[updated.length - 1].text + text,
-          };
+          updated[idx] = { ...updated[idx], text };
           return updated;
         }
-        return [...prev, { role, text, timestamp: new Date() }];
+        // New bubble for this turn
+        return [...prev, { role, text, timestamp: new Date(), turnId }];
       });
     },
     [],
@@ -117,6 +133,8 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
 
         switch (msg.type) {
           case "audio": {
+            // Suppress mic while AI speaks to prevent echo → VAD → self-interrupt
+            if (audioRef.current) audioRef.current.speaking = true;
             const binaryStr = atob(msg.data);
             const bytes = new Uint8Array(binaryStr.length);
             for (let i = 0; i < binaryStr.length; i++) {
@@ -126,7 +144,13 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
             break;
           }
 
+          case "transcript_delta":
+            // Streaming: update the same bubble in real-time
+            upsertTranscriptDelta(msg.role, msg.text, msg.turn_id);
+            break;
+
           case "transcript":
+            // Legacy / fallback: complete transcript entry
             addTranscript(msg.role, msg.text);
             break;
 
@@ -168,11 +192,17 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
           }
 
           case "turn_complete":
+            // AI turn ended — but audio may still be in the playback queue.
+            // markTurnComplete() delays mic re-enable until all queued audio
+            // has actually finished playing, preventing echo-feedback loops
+            // caused by the Gemini Live API's premature turnComplete bug.
+            if (audioRef.current) audioRef.current.markTurnComplete();
             break;
 
           case "interrupted":
             // User interrupted — clear queued audio so old speech stops
             audioRef.current?.clearPlaybackQueue();
+            if (audioRef.current) audioRef.current.speaking = false;
             break;
 
           case "error":
@@ -184,7 +214,7 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to parse companion message:", e);
       }
     },
-    [addTranscript, addFinding, router],
+    [addTranscript, upsertTranscriptDelta, addFinding, router],
   );
 
   /* ── Outbound helpers ─────────────────────────────────────────────── */
@@ -333,6 +363,9 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
 
       // 3. Start audio capture, forwarding PCM chunks to WebSocket
       const am = new AudioManager();
+      am.onPlaybackIdle = () => {
+        console.log("[Companion] playback idle — mic re-enabled");
+      };
       audioRef.current = am;
       await am.startCapture(sendAudio);
     } catch (e) {
@@ -365,24 +398,30 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
     activeCaseIdRef.current = caseId;
 
     const pageName = caseId ? subPage! : pathname.replace(/^\//, "") || "dashboard";
+    const newMode: CompanionMode = pageName === "live-audit" ? "field" : "desk";
+    setModeState(newMode);
 
-    // Auto-switch mode: live-audit page -> field, everything else -> desk
-    if (pageName === "live-audit" && status === "connected") {
-      setMode("field", caseId ?? undefined);
-    } else if (status === "connected") {
-      setMode("desk", caseId ?? undefined);
-    }
+    // Only send screen_context on ACTUAL page navigation, not on initial connect.
+    // send_content() forces turn_complete=true which makes Gemini respond immediately.
+    // On initial connect this would cause an unsolicited greeting that overlaps
+    // with the user's first speech → two audio responses.
+    const isNavigation = prevPathnameRef.current !== pathname;
+    prevPathnameRef.current = pathname;
 
-    // Send screen context to backend
-    if (status === "connected") {
-      sendScreenContext({
-        page: pageName,
-        case_id: caseId,
-        domain: null,
-      });
+    if (status === "connected" && isNavigation) {
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: "screen_context",
+            page: pageName,
+            case_id: caseId,
+            domain: null,
+            mode: newMode,
+          }),
+        );
+      }
     }
-    // We intentionally only react to pathname changes (and status for gating),
-    // not to setMode/sendScreenContext identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, status]);
 

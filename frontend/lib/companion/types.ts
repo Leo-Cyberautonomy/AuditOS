@@ -2,6 +2,7 @@ export interface TranscriptEntry {
   role: "user" | "assistant" | "system";
   text: string;
   timestamp: Date;
+  turnId?: number; // groups streaming deltas into one bubble
 }
 
 export interface Finding {
