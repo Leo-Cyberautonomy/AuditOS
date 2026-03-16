@@ -276,6 +276,19 @@ export function CompanionProvider({ children }: { children: React.ReactNode }) {
   /* ── Connect ──────────────────────────────────────────────────────── */
 
   const connect = useCallback(async () => {
+    // Prevent duplicate connections: close any existing WebSocket first
+    if (wsRef.current) {
+      wsRef.current.onmessage = null;
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.stopCapture();
+      audioRef.current = null;
+    }
+
     setStatus("connecting");
 
     try {

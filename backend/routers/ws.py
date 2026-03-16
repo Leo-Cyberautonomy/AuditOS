@@ -340,9 +340,12 @@ async def _downstream(
             # the frontend already displayed it. If they spoke, the transcription
             # would duplicate with future voice support.
 
-            # Buffer output transcription (don't send yet)
+            # Buffer output transcription — always keep the LAST event's text.
+            # Gemini sends incremental chunks then a final complete text.
+            # The final event (right before turn_complete) has the full sentence.
+            # By always overwriting, we guarantee no duplication.
             if event.output_transcription and event.output_transcription.text:
-                _output_buffer += event.output_transcription.text
+                _output_buffer = event.output_transcription.text
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
@@ -556,9 +559,12 @@ async def _companion_downstream(
             # ── Transcription handling (buffer design) ──
             # Same as _downstream: buffer chunks, flush on turn_complete.
 
-            # Buffer output transcription (don't send yet)
+            # Buffer output transcription — always keep the LAST event's text.
+            # Gemini sends incremental chunks then a final complete text.
+            # The final event (right before turn_complete) has the full sentence.
+            # By always overwriting, we guarantee no duplication.
             if event.output_transcription and event.output_transcription.text:
-                _output_buffer += event.output_transcription.text
+                _output_buffer = event.output_transcription.text
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
