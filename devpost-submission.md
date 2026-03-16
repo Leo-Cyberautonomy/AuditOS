@@ -131,6 +131,6 @@ AuditAI is a multi-domain audit platform with a real-time voice + vision AI comp
 
 ### Links
 
-- **Live Demo (Frontend):** https://auditai-frontend-1058434722594.us-central1.run.app
-- **Live Demo (Backend):** https://auditai-backend-1058434722594.us-central1.run.app
+- **Live Demo (Frontend):** https://auditai-frontend-342109712917.us-central1.run.app
+- **Live Demo (Backend):** https://auditai-backend-342109712917.us-central1.run.app
 - **GitHub:** https://github.com/Leo-Cyberautonomy/AuditOS
