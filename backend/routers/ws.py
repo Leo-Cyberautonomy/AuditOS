@@ -553,40 +553,12 @@ async def _companion_downstream(
                 })
                 continue
 
-            # Handle input transcription (user speech -> text)
-            if event.input_transcription and event.input_transcription.text:
-                text = event.input_transcription.text
-                await websocket.send_json({
-                    "type": "transcript",
-                    "role": "user",
-                    "text": text,
-                })
-                await _save_transcript(session_id, "user", text)
+            # ── Transcription handling (buffer design) ──
+            # Same as _downstream: buffer chunks, flush on turn_complete.
 
-            # Handle output transcription (model speech -> text)
-            # Gemini sends streaming chunks (short) then a final summary (long).
-            # We only forward the streaming chunks. The final summary is detected
-            # by being significantly longer than previous chunks and is skipped
-            # to prevent text duplication.
+            # Buffer output transcription (don't send yet)
             if event.output_transcription and event.output_transcription.text:
-                text = event.output_transcription.text
-                if not _is_thinking_text(text):
-                    # Skip the final "summary" transcription that duplicates all chunks
-                    if len(text) > 40 and transcription_char_count > 20 and len(text) > transcription_char_count * 0.5:
-                        # This is likely the final summary — skip it
-                        pass
-                    else:
-                        transcription_char_count += len(text)
-                        await websocket.send_json({
-                            "type": "transcript",
-                            "role": "assistant",
-                            "text": text,
-                        })
-                        await _save_transcript(session_id, "assistant", text)
-
-            # Reset transcription counter on turn_complete
-            if event.turn_complete:
-                transcription_char_count = 0
+                _output_buffer += event.output_transcription.text
 
             # Handle content (audio or text)
             if event.content and event.content.parts:
