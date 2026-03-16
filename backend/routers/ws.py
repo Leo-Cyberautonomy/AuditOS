@@ -373,14 +373,12 @@ async def _downstream(
                             "result": dict(part.function_response.response) if part.function_response.response else {},
                         })
 
-                # Text output — ONLY if no audio was sent (avoid duplicate with transcription)
-                if not has_audio_output:
-                    for part in event.content.parts:
-                        if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
-                            await websocket.send_json({
-                                "type": "text",
-                                "text": part.text,
-                            })
+                # Text output — DISABLED in AUDIO mode.
+                # In AUDIO mode (response_modalities=["AUDIO"]), all spoken text
+                # is already captured by output_transcription. Sending part.text
+                # would duplicate every response. Only send text if we somehow
+                # get a text-only response with no audio AND no transcription.
+                # This should not happen in normal AUDIO mode operation.
 
             # Handle turn complete
             if event.turn_complete:
@@ -599,14 +597,12 @@ async def _companion_downstream(
                             ui_cmd.update(result)
                             await websocket.send_json(ui_cmd)
 
-                # Text output — ONLY if no audio was sent (avoid duplicate with transcription)
-                if not has_audio_output:
-                    for part in event.content.parts:
-                        if part.text and not getattr(part, "thought", False) and not _is_thinking_text(part.text):
-                            await websocket.send_json({
-                                "type": "text",
-                                "text": part.text,
-                            })
+                # Text output — DISABLED in AUDIO mode.
+                # In AUDIO mode (response_modalities=["AUDIO"]), all spoken text
+                # is already captured by output_transcription. Sending part.text
+                # would duplicate every response. Only send text if we somehow
+                # get a text-only response with no audio AND no transcription.
+                # This should not happen in normal AUDIO mode operation.
 
             # Handle turn complete
             if event.turn_complete:
