@@ -109,53 +109,71 @@ AuditAI puts an expert AI co-pilot in the auditor's pocket:
 
 ## Live Demo
 
-- **Frontend:** https://auditai-frontend-1058434722594.us-central1.run.app
-- **Backend API:** https://auditai-backend-1058434722594.us-central1.run.app
+- **Frontend:** https://auditai-frontend-342109712917.us-central1.run.app
+- **Backend API:** https://auditai-backend-342109712917.us-central1.run.app
 
-## Quick Start
+## Reproducible Testing Instructions
 
-### Prerequisites
-- Python 3.13+
-- Node.js 20+
-- A Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+### Option 1: Use the Live Demo (Recommended)
 
-### Backend
+1. Open https://auditai-frontend-342109712917.us-central1.run.app
+2. Click **"Enter Platform"** → you'll see 5 pre-seeded audit cases across different domains
+3. Click the **"AI"** button in the top-right of the sidebar to activate the AI companion
+4. **Allow microphone access** when prompted
+5. Try these voice commands:
+   - *"Introduce yourself"* — AI describes its capabilities
+   - *"Take me to Case 1 overview"* — voice navigation
+   - *"Give me a summary of this case"* — screen reading
+   - *"Go to the review page"* — page navigation
+   - *"Show me only the critical findings"* — data filtering
+   - *"Highlight the first one"* — visual highlighting
+   - *"What does ISO 50001 say about energy performance indicators?"* — regulation lookup
+   - *"Go to the report page and click Generate Report"* — button clicking
+   - *"Go to the live audit page"* — field mode with camera
+6. In field mode, point camera at any equipment and describe what you see — AI records findings automatically
+
+### Option 2: Run Locally
+
+**Prerequisites:** Python 3.13+, Node.js 20+, a [Gemini API key](https://aistudio.google.com/)
+
 ```bash
+# Backend
 cd backend
-cp ../.env.example .env          # Add your GEMINI_API_KEY
+echo "GEMINI_API_KEY=your_key_here" > .env
 uv venv && source .venv/bin/activate
-uv pip install fastapi 'uvicorn[standard]' google-genai google-adk pandas pdfplumber pillow python-dotenv markitdown openpyxl python-multipart
+uv pip install fastapi 'uvicorn[standard]' google-genai google-adk pandas pdfplumber pillow python-dotenv markitdown openpyxl python-multipart google-cloud-firestore
 uvicorn main:app --reload --port 8000
-```
 
-### Frontend
-```bash
+# Frontend (new terminal)
 cd frontend
 echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000 → Enter Platform → Click AI button → Start talking
 
-### Deploy to Google Cloud Run
+### Option 3: Deploy to Google Cloud Run
+
 ```bash
-# Backend
-gcloud run deploy auditai-backend \
-  --source backend \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars "GEMINI_API_KEY=YOUR_KEY,FRONTEND_URL=https://YOUR_FRONTEND_URL" \
-  --memory 1Gi --timeout 300
+# Enable APIs
+gcloud services enable firestore.googleapis.com generativelanguage.googleapis.com
 
-# Frontend
-gcloud run deploy auditai-frontend \
-  --source frontend \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-build-env-vars "NEXT_PUBLIC_API_URL=https://YOUR_BACKEND_URL" \
-  --memory 512Mi --port 3000
+# Create Firestore database
+gcloud firestore databases create --location=nam5 --type=firestore-native
+
+# Deploy backend
+cd backend
+gcloud run deploy auditai-backend --source . --region us-central1 \
+  --allow-unauthenticated --session-affinity --timeout 3600 --min-instances 1 \
+  --set-env-vars "GEMINI_API_KEY=your_key,GOOGLE_API_KEY=your_key"
+
+# Deploy frontend (update Dockerfile ARG with your backend URL first)
+cd frontend
+gcloud run deploy auditai-frontend --source . --region us-central1 \
+  --allow-unauthenticated --min-instances 0 --timeout 60
 ```
+
 
 ## Live Audit — How It Works
 
