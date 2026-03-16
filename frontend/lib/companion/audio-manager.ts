@@ -136,12 +136,15 @@ export class AudioManager {
       };
 
       const now = ctx.currentTime;
-      // Reset if queue drifted too far ahead
-      if (this.nextPlayTime - now > 5) {
+      // If nextPlayTime is in the past (e.g. after a long pause between
+      // responses), snap forward to `now` so we don't schedule into the past.
+      // Do NOT reset when nextPlayTime is far in the future — that's expected
+      // for long audio streams where chunks arrive faster than real-time.
+      if (this.nextPlayTime < now) {
         this.nextPlayTime = now;
       }
 
-      const startAt = Math.max(now, this.nextPlayTime);
+      const startAt = this.nextPlayTime;
       source.start(startAt);
       this.activeSources.push(source);
       this.nextPlayTime = startAt + buffer.duration;
