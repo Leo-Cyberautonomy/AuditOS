@@ -135,6 +135,7 @@ const TECH_BADGES = [
   "Google ADK",
   "Gemini 2.5 Flash",
   "Cloud Run",
+  "Cloud Firestore",
   "Next.js",
   "FastAPI",
 ] as const;
@@ -302,7 +303,7 @@ export default function LandingPage() {
             Architecture
           </h2>
           <p className="mt-2 text-center text-3xl font-bold text-white sm:text-4xl">
-            Built on Google Cloud + ADK
+            Built on Google Cloud + ADK + Firestore
           </p>
 
           {/* Text-based architecture diagram */}
